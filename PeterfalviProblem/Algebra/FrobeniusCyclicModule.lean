@@ -11,26 +11,19 @@ import Mathlib.FieldTheory.Separable
 import Mathlib.LinearAlgebra.AnnihilatingPolynomial
 
 /-!
-# The Frobenius polynomial action on `GaloisField p q` is cyclic
+# The Frobenius module `𝔽_{p^q}`
 
-`GaloisField p q` is a module over the polynomial ring `(ZMod p)[X]` by letting `X` act as the
-Frobenius endomorphism `y ↦ y ^ p`.  This file establishes the two module-theoretic facts that
-the pair-composition calculus of BG Appendix C, Problem 1 needs (issue 0180,
-`notes/bg/appC_problem1_pair_composition.md`):
+The field `𝔽_{p^q}` is a module over the polynomial ring `𝔽_p[X]`, where `X` acts as the
+Frobenius map `y ↦ y^p`. This file proves two facts about this module.
 
-* `exists_aeval_frobEnd_eq_of_forall_imp` — the module is **cyclic** (isomorphic to the regular
-  representation `(ZMod p)[X] ⧸ (X ^ q - 1)`, because the minimal polynomial of Frobenius is
-  `X ^ q - 1` by Dedekind independence, packaged in `minpoly_frobeniusAlgHom`), so an
-  annihilator inclusion `Ann(S) ⊆ Ann(S')` already forces `S'` into the orbit
-  `(ZMod p)[X] • S`.
-* `aeval_frobEnd_eq_zero_of_pow` — when `p ∤ q` the annihilator ideal of any element is
-  **radical** (`X ^ q - 1` is squarefree), so `c ^ n` annihilating `S` forces `c` to annihilate
-  `S`.  In characteristic `3` with `c = a - 1` and `n = 3` this turns `a ^ 3 • S = S` into
-  `a • S = S` — the arithmetic heart of the chain-reversal refutation.
+* The minimal polynomial of the Frobenius map is `X^q - 1` (`minpoly_frobEnd`). So the module is
+  cyclic: it is isomorphic to `𝔽_p[X] / (X^q - 1)`. Hence, if every polynomial that kills `S` also
+  kills `S'`, then `S'` is a polynomial multiple of `S` (`exists_aeval_frobEnd_eq_of_forall_imp`).
+* If `p ∤ q`, then `X^q - 1` has no repeated factors. So if `cⁿ` kills `S`, then `c` kills `S`
+  (`aeval_frobEnd_eq_zero_of_pow`). The proof uses this with `p = 3`, `c = a - 1` and `n = 3`, to
+  turn `a³ · S = S` into `a · S = S`.
 
-The bridge `aeval_frobEnd_apply` re-expresses the abstract `Polynomial.aeval` action in the
-`∑ cⱼ • y ^ p ^ j` form used by the `ConjPair` machinery in
-`OddOrder/BG/AppC_Problem1PairComposition.lean`.
+`aeval_frobEnd_apply` writes the action of a polynomial `c` as `y ↦ ∑ⱼ cⱼ y^{pʲ}`.
 -/
 
 namespace PeterfalviProblem
@@ -39,8 +32,7 @@ open Polynomial
 
 variable (p q : ℕ) [Fact p.Prime]
 
-/-- The Frobenius endomorphism `y ↦ y ^ p` of `GaloisField p q`, as a linear endomorphism over
-the prime field. -/
+/-- The Frobenius map `y ↦ y^p` of `𝔽_{p^q}`, as an `𝔽_p`-linear map. -/
 noncomputable def frobEnd : Module.End (ZMod p) (GaloisField p q) :=
   (FiniteField.frobeniusAlgHom (ZMod p) (GaloisField p q)).toLinearMap
 
@@ -54,15 +46,15 @@ theorem frobEnd_pow_apply (j : ℕ) (y : GaloisField p q) :
   | succ n ih =>
       rw [pow_succ', Module.End.mul_apply, ih, frobEnd_apply, ← pow_mul, ← pow_succ]
 
-/-- The minimal polynomial of the Frobenius endomorphism is `X ^ q - 1` (Dedekind independence
-of field automorphisms, via `minpoly_frobeniusAlgHom`). -/
+/-- The minimal polynomial of the Frobenius map is `X^q - 1`. This is Mathlib's
+`FiniteField.minpoly_frobeniusAlgHom`, which uses the linear independence of the field
+automorphisms. -/
 theorem minpoly_frobEnd (hq0 : q ≠ 0) :
     minpoly (ZMod p) (frobEnd p q) = X ^ q - 1 := by
   have h := FiniteField.minpoly_frobeniusAlgHom (ZMod p) (GaloisField p q)
   rwa [GaloisField.finrank p hq0] at h
 
-/-- The `aeval` action of a polynomial at the Frobenius endomorphism, in the explicit
-`∑ cⱼ • y ^ p ^ j` form used by the collision machinery. -/
+/-- A polynomial `c` acts by `y ↦ ∑ⱼ cⱼ y^{pʲ}`. -/
 theorem aeval_frobEnd_apply (c : (ZMod p)[X]) (y : GaloisField p q) :
     aeval (frobEnd p q) c y
       = ∑ j ∈ Finset.range (c.natDegree + 1), (c.coeff j).val • y ^ p ^ j := by
@@ -71,7 +63,8 @@ theorem aeval_frobEnd_apply (c : (ZMod p)[X]) (y : GaloisField p q) :
   rw [LinearMap.smul_apply, frobEnd_pow_apply, ← Nat.cast_smul_eq_nsmul (ZMod p),
     ZMod.natCast_val, ZMod.cast_id]
 
-/-- `X ^ q - 1` kills every element: Frobenius has order dividing `q`. -/
+/-- `X^q - 1` kills every element, because the `q`-th power of the Frobenius map is the
+identity. -/
 theorem aeval_frobEnd_self_eq_zero (hq0 : q ≠ 0) (y : GaloisField p q) :
     aeval (frobEnd p q) (X ^ q - 1 : (ZMod p)[X]) y = 0 := by
   have h := minpoly.aeval (ZMod p) (frobEnd p q)
@@ -79,9 +72,8 @@ theorem aeval_frobEnd_self_eq_zero (hq0 : q ≠ 0) (y : GaloisField p q) :
   rw [h]
   rfl
 
-/-- **Cyclic vector for the Frobenius action.**  There is `θ : GaloisField p q` whose
-`(ZMod p)[X]`-annihilator is exactly `(X ^ q - 1)` and whose orbit is everything: the module is
-the regular representation. -/
+/-- The module is cyclic. There is an element `θ` whose annihilator is exactly the ideal
+`(X^q - 1)`, and every element is a polynomial multiple of `θ`. -/
 theorem exists_frobenius_cyclic_vector (hq0 : q ≠ 0) :
     ∃ θ : GaloisField p q,
       (∀ c : (ZMod p)[X],
@@ -155,8 +147,8 @@ theorem exists_frobenius_cyclic_vector (hq0 : q ≠ 0) :
             Module.algebraMap_end_apply]
     _ = y := by simpa [Finsupp.sum] using hgy
 
-/-- **Annihilator inclusion forces orbit membership** (cyclicity / multiplicity-freeness): if
-every polynomial killing `S` also kills `S'`, then `S'` is a polynomial multiple of `S`. -/
+/-- If every polynomial that kills `S` also kills `S'`, then `S'` is a polynomial multiple of
+`S`. This follows from the cyclicity of the module. -/
 theorem exists_aeval_frobEnd_eq_of_forall_imp (hq0 : q ≠ 0) {S S' : GaloisField p q}
     (hann : ∀ c : (ZMod p)[X],
       aeval (frobEnd p q) c S = 0 → aeval (frobEnd p q) c S' = 0) :
@@ -213,8 +205,8 @@ theorem exists_aeval_frobEnd_eq_of_forall_imp (hq0 : q ≠ 0) {S S' : GaloisFiel
   rw [← hcS, ← haux θ (u * k) cS, hexpand, map_sub, LinearMap.sub_apply, hcS',
     (hθdvd (v * k * m)).mpr ⟨v * k, by ring⟩, sub_zero]
 
-/-- **Radical annihilators** (squarefree case): if `p ∤ q` then `c ^ n` killing `S` forces `c`
-to kill `S`.  This is where the squarefreeness of `X ^ q - 1` enters. -/
+/-- If `p ∤ q` and `cⁿ` kills `S`, then `c` kills `S`. Here we use that `X^q - 1` has no repeated
+factors when `p ∤ q`. -/
 theorem aeval_frobEnd_eq_zero_of_pow (hq0 : q ≠ 0) (hpq : ¬ p ∣ q)
     {S : GaloisField p q} {c : (ZMod p)[X]} {n : ℕ} (hn : n ≠ 0)
     (h : aeval (frobEnd p q) (c ^ n) S = 0) : aeval (frobEnd p q) c S = 0 := by

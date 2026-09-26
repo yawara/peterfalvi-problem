@@ -14,46 +14,34 @@ import Mathlib.Tactic.Ring
 /-!
 # Additive subgroups of a field that are closed under inversion
 
-An additive subgroup `W` of a field which is also closed under inversion is very rigid: after
-rescaling by any nonzero `s ∈ W`, it becomes a *subring*.  The mechanism is **Hua's identity**
+Let `W` be an additive subgroup of a field that is also closed under inversion. Such a `W` is very
+rigid. The reason is **Hua's identity**
 
 `x - (x⁻¹ + (y - x)⁻¹)⁻¹ = x² / y`,
 
-which expresses `x² / y` using only additions and inversions, so `W` is closed under `(x, y) ↦
-x²/y`.  Taking `y = s` shows that `K = {v : s * v ∈ W}` is closed under squaring, and in
-characteristic three `u * v = u² + v² - (u + v)²` turns that into closure under multiplication.
+which builds `x² / y` from `x` and `y` using only subtraction and inversion. So `W` is closed under
+`(x, y) ↦ x² / y`. Fix a nonzero `s ∈ W`. Taking `y = s` shows that `K = {v : s v ∈ W}` is closed
+under squaring. In characteristic three, `u v = u² + v² - (u + v)²`, so `K` is also closed under
+multiplication. In fact `K` is a subfield.
 
-## Where this is used
-
-This is the algebraic core of the *same-coset obstruction* for BG Appendix C, Problem 1
-(`notes/bg/appC_problem1_partial_resolution.md`, issue 0180).  There one shows that
-
-`W = {s : x and the second-layer element b(s t^E) commute for every t}`
-
-is an additive subgroup closed under `s ↦ s⁻¹`.  Since `𝔽_{3^q}` with `q` prime has no
-intermediate subfield, `W` is then forced to be either the prime field — which pins the collision
-value to `-1` and makes its trace non-zero — or all of `𝔽_{3^q}`, which makes the two layers
-centralise each other and contradicts the perfectness of `N`.  Either way no witness survives, and
-crucially *no* hypothesis on the trace is needed.
+In `𝔽_{3^q}` with `q` prime, the only subfields are `𝔽₃` and `𝔽_{3^q}`. So either `W` is
+everything, or `s⁴ = 1` for every nonzero `s ∈ W` (`pow_four_eq_one_or_forall_mem`).
 
 ## Main results
 
-* `hua_identity` — `x - (x⁻¹ + (y - x)⁻¹)⁻¹ = x² / y`.
-* `sq_div_mem` — an inversion-closed additive subgroup is closed under `(x, y) ↦ x² / y`.
-* `scaledSubring` — `{v : s * v ∈ W}` as a `Subring`, in characteristic three.
-* `scaledSubfield` — the same, as a `Subfield`; `eq_smul_scaledSubfield` recovers `W = s • K`.
-* `subfield_eq_bot_or_top` — a finite field of prime degree has no intermediate subfield.
-* `pow_four_eq_one_or_forall_mem` — **the dichotomy**: in `𝔽_{3^q}` with `q` prime such a `W`
-  either is everything, or has `s ^ 4 = 1` for each of its nonzero elements.
+* `hua_identity`: `x - (x⁻¹ + (y - x)⁻¹)⁻¹ = x² / y`.
+* `sq_div_mem`: an inversion-closed additive subgroup is closed under `(x, y) ↦ x² / y`.
+* `scaledSubfield`: in characteristic three, `{v : s v ∈ W}` is a subfield.
+* `subfield_eq_bot_or_top`: a finite field of prime degree has no intermediate subfield.
+* `pow_four_eq_one_or_forall_mem`: the dichotomy above.
 -/
 
 namespace PeterfalviProblem.InverseClosed
 
 variable {F : Type*} [Field F]
 
-/-- **Hua's identity** in a commutative field: `x² / y` is built from `x` and `y` by additions and
-inversions alone.  (In `mathlib`'s convention `0⁻¹ = 0`, but the identity is stated where all the
-inverses are genuine.) -/
+/-- **Hua's identity**: `x² / y` can be built from `x` and `y` by subtraction and inversion. The
+hypotheses make every inverse in the identity the inverse of a nonzero element. -/
 theorem hua_identity {x y : F} (hx : x ≠ 0) (hy : y ≠ 0) (hxy : x ≠ y) :
     x - (x⁻¹ + (y - x)⁻¹)⁻¹ = x ^ 2 / y := by
   have hyx : y - x ≠ 0 := sub_ne_zero.mpr (Ne.symm hxy)
@@ -66,8 +54,8 @@ theorem hua_identity {x y : F} (hx : x ≠ 0) (hy : y ≠ 0) (hxy : x ≠ y) :
 
 variable (W : AddSubgroup F)
 
-/-- **Closure under `(x, y) ↦ x² / y`.**  This is Hua's identity read inside `W`: every term on
-its right-hand side is an inverse or a difference of elements of `W`. -/
+/-- An inversion-closed additive subgroup is closed under `(x, y) ↦ x² / y`, by Hua's
+identity. -/
 theorem sq_div_mem (hinv : ∀ w ∈ W, w⁻¹ ∈ W) {x y : F} (hx : x ∈ W) (hy : y ∈ W) (hy0 : y ≠ 0) :
     x ^ 2 / y ∈ W := by
   rcases eq_or_ne x 0 with rfl | hx0
@@ -78,7 +66,7 @@ theorem sq_div_mem (hinv : ∀ w ∈ W, w⁻¹ ∈ W) {x y : F} (hx : x ∈ W) (
   rw [← hua_identity hx0 hy0 hxy]
   exact W.sub_mem hx (hinv _ (W.add_mem (hinv _ hx) (hinv _ (W.sub_mem hy hx))))
 
-/-- Rescaling by a fixed `s ∈ W` turns closure under `x² / y` into closure under squaring. -/
+/-- If `s ∈ W` is nonzero and `s v ∈ W`, then `s v² ∈ W`. -/
 theorem mul_sq_mem (hinv : ∀ w ∈ W, w⁻¹ ∈ W) {s v : F} (hs : s ∈ W) (hs0 : s ≠ 0)
     (hv : s * v ∈ W) : s * v ^ 2 ∈ W := by
   have key : (s * v) ^ 2 / s = s * v ^ 2 := by
@@ -86,8 +74,8 @@ theorem mul_sq_mem (hinv : ∀ w ∈ W, w⁻¹ ∈ W) {s v : F} (hs : s ∈ W) (
   rw [← key]
   exact sq_div_mem W hinv hv hs hs0
 
-/-- In characteristic three, `u * v = u² + v² - (u + v)²`, so closure under squaring upgrades to
-closure under multiplication. -/
+/-- In characteristic three, `u v = u² + v² - (u + v)²`. So if `s u` and `s v` lie in `W`, then
+so does `s u v`. -/
 theorem mul_mul_mem (hinv : ∀ w ∈ W, w⁻¹ ∈ W) (h3 : (3 : F) = 0) {s u v : F} (hs : s ∈ W)
     (hs0 : s ≠ 0) (hu : s * u ∈ W) (hv : s * v ∈ W) : s * (u * v) ∈ W := by
   have hsum : s * (u + v) ∈ W := by
@@ -100,8 +88,8 @@ theorem mul_mul_mem (hinv : ∀ w ∈ W, w⁻¹ ∈ W) (h3 : (3 : F) = 0) {s u v
   exact W.sub_mem (W.add_mem (mul_sq_mem W hinv hs hs0 hu) (mul_sq_mem W hinv hs hs0 hv))
     (mul_sq_mem W hinv hs hs0 hsum)
 
-/-- **The rescaled subgroup is a subring.**  For an inversion-closed additive subgroup `W` of a
-field of characteristic three and a nonzero `s ∈ W`, the set `{v : s * v ∈ W}` is a subring. -/
+/-- Let `W` be an inversion-closed additive subgroup of a field of characteristic three, and let
+`s ∈ W` be nonzero. Then `{v : s v ∈ W}` is a subring. -/
 def scaledSubring (hinv : ∀ w ∈ W, w⁻¹ ∈ W) (h3 : (3 : F) = 0) {s : F} (hs : s ∈ W)
     (hs0 : s ≠ 0) : Subring F where
   carrier := {v | s * v ∈ W}
@@ -125,8 +113,7 @@ def scaledSubring (hinv : ∀ w ∈ W, w⁻¹ ∈ W) (h3 : (3 : F) = 0) {s : F} 
     exact W.neg_mem hu
   mul_mem' := fun hu hv => mul_mul_mem W hinv h3 hs hs0 hu hv
 
-/-- **The rescaled subgroup is a subfield.**  Inverses come for free: `s * v⁻¹ = s² / (s * v)`,
-which `sq_div_mem` supplies.  (No finiteness is needed.) -/
+/-- The subring `{v : s v ∈ W}` is a subfield, because `s v⁻¹ = s² / (s v)`. -/
 def scaledSubfield (hinv : ∀ w ∈ W, w⁻¹ ∈ W) (h3 : (3 : F) = 0) {s : F}
     (hs : s ∈ W) (hs0 : s ≠ 0) : Subfield F :=
   { scaledSubring W hinv h3 hs hs0 with
@@ -142,17 +129,17 @@ def scaledSubfield (hinv : ∀ w ∈ W, w⁻¹ ∈ W) (h3 : (3 : F) = 0) {s : F}
       rw [← key]
       exact sq_div_mem W hinv hs hsv (mul_ne_zero hs0 hv0) }
 
-/-! ### No intermediate subfield in prime degree
+/-! ### Fields of prime degree
 
-`𝔽_{p^q}` with `q` prime has only the two obvious subfields, because a subfield has `p^d` elements
-with `d ∣ q`.  Combined with the previous subsection this pins an inversion-closed additive
-subgroup down completely. -/
+The only subfields of `𝔽_{p^q}` with `q` prime are `𝔽_p` and `𝔽_{p^q}`: a subfield has `p^d`
+elements with `d ∣ q`. -/
 
 section PrimeDegree
 
 variable [Fintype F] {p q : ℕ} [Fact p.Prime] [CharP F p]
 
-/-- **A finite field of prime degree over its prime field has no intermediate subfield.** -/
+/-- A finite field of prime degree over its prime field has no subfield other than the prime
+field and itself. -/
 theorem subfield_eq_bot_or_top (hq : q.Prime) (hcard : Fintype.card F = p ^ q) (K : Subfield F) :
     K = ⊥ ∨ K = ⊤ := by
   classical
@@ -181,12 +168,8 @@ theorem subfield_eq_bot_or_top (hq : q.Prime) (hcard : Fintype.card F = p ^ q) (
     obtain ⟨k, hk⟩ := hbij.2 x
     exact hk ▸ k.2
 
-/-- **The punchline.**  In a finite field of characteristic three whose degree over the prime
-field is prime, an inversion-closed additive subgroup `W` with a nonzero element `s` either
-exhausts the field, or satisfies `s ^ 4 = 1` — in which case `W = s · 𝔽₃` with `s = ±1`, i.e.
-`W` is the prime field.
-
-This is exactly the dichotomy the same-coset obstruction of issue 0180 needs. -/
+/-- Let `F` be a finite field of characteristic three whose degree over `𝔽₃` is prime. Let `W` be
+an inversion-closed additive subgroup, and let `s ∈ W` be nonzero. Then `W = F` or `s⁴ = 1`. -/
 theorem pow_four_eq_one_or_forall_mem (hinv : ∀ w ∈ W, w⁻¹ ∈ W) (hp : p = 3) (hq : q.Prime)
     (hcard : Fintype.card F = p ^ q) {s : F} (hs : s ∈ W) (hs0 : s ≠ 0) :
     s ^ 4 = 1 ∨ ∀ x : F, x ∈ W := by

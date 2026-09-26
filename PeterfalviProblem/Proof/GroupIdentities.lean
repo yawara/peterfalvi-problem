@@ -29,7 +29,7 @@ namespace PeterfalviProblem
 
 variable {G : Type*} [Group G]
 
-section LemmaA
+section PowThree
 
 variable {x c g : G}
 
@@ -51,28 +51,15 @@ private theorem cancel_three (hx : x ^ 3 = 1) (r : G) : x * (x * (x * r)) = r :=
     rwa [← mul_assoc] at h
   rw [← mul_assoc, ← mul_assoc, h, one_mul]
 
-/-- Expansion of `(x · c)³` into the three `x`-conjugates of `c`, valid whenever `x³ = 1`:
-
-`(x c)³ = c^{x²} · (c^x · c)`.
-
-Equivalently `(x c)³ = 1` says that the "norm" of `c` along `⟨x⟩` is trivial. -/
+/-- If `x³ = 1`, then `(x c)³ = c^{x²} · c^x · c`, where `c^x = x⁻¹ c x`. -/
 theorem pow_three_eq_conj_mul (hx : x ^ 3 = 1) (c : G) :
     (x * c) ^ 3 = x⁻¹ * (x⁻¹ * c * x) * x * ((x⁻¹ * c * x) * c) := by
   have hxi : x⁻¹ = x * x := inv_eq_mul_self hx
   have hcan : ∀ r : G, x * (x * (x * r)) = r := cancel_three hx
   simp only [hxi, pow_succ, pow_zero, one_mul, mul_assoc, hcan]
 
-/-- **Lemma A′.**  Let `x` have order dividing three and let `c` commute with its conjugate
-`x⁻¹cx`.  Then
-
-`(x * c * x)³ = (x * c)³`.
-
-Indeed both sides equal `c^{x²} · c^x · c` up to the order of the last two factors:
-`(x * c)³ = c^{x²} c^{x} c` and `(x * c * x)³ = c^{x²} c c^{x}`.
-
-This is the first step of the partial resolution of BG Appendix C, Problem 1: for a witness of
-hypothesis (B) one takes `c = ⁅x, y⁆`, which lies in the abelian subgroup `Q`, so the commutation
-hypothesis is free and the conclusion says `(g * x)³ = g³` for `g = x * c`. -/
+/-- Let `x³ = 1`, and let `c` commute with `c^x = x⁻¹ c x`. Then `(x c x)³ = (x c)³`. Indeed
+`(x c)³ = c^{x²} c^x c` and `(x c x)³ = c^{x²} c c^x`. -/
 theorem pow_three_mul_eq_pow_three_of_commute (hx : x ^ 3 = 1)
     (h : Commute c (x⁻¹ * c * x)) : (x * c * x) ^ 3 = (x * c) ^ 3 := by
   have hxi : x⁻¹ = x * x := inv_eq_mul_self hx
@@ -81,25 +68,19 @@ theorem pow_three_mul_eq_pow_three_of_commute (hx : x ^ 3 = 1)
     simp only [hxi, pow_succ, pow_zero, one_mul, mul_assoc, hcan]
   rw [pow_three_eq_conj_mul hx c, e₂, h.eq]
 
-/-- The shape used downstream.  If `g = x * c` has order dividing three — automatic when `g` is a
-conjugate of the order-three element `x` — and `c` commutes with `x⁻¹cx`, then the product
-`g * x` also has order dividing three. -/
+/-- Let `x³ = 1`, and let `c` commute with `x⁻¹ c x`. If `g = x c` satisfies `g³ = 1`, then
+`(g x)³ = 1`. -/
 theorem pow_three_mul_pow_three_eq_one (hx : x ^ 3 = 1) (h : Commute c (x⁻¹ * c * x))
     (hg : (x * c) ^ 3 = 1) : (x * c * x) ^ 3 = 1 := by
   rw [pow_three_mul_eq_pow_three_of_commute hx h, hg]
 
-/-- **The last mile of Theorem 1.**  Let `x` and `g` have order dividing three, let `g · x` also
-have order dividing three, and suppose `x` commutes with its `g`-conjugate.  Then
-
+/-- Let `g³ = 1` and `(g x)³ = 1`, and let `x` commute with `x^g = g⁻¹ x g`. Then
 `(x⁻¹ g)³ = 1`.
 
-Since `x⁻¹g = ⁅x, y⁆` lies in the `3′`-group `Q` for a witness of hypothesis (B), this forces
-`x⁻¹g = 1`, i.e. `g = x` — and `⟨g⟩` normalizes `σ(U)` whereas `⟨x⟩` does not.  That is the final
-contradiction of Theorem 1.
-
-The computation: `(g x)³ = 1` says `x^{g²} · x^g · x = 1`, so also `x · x^{g²} · x^g = 1` after a
-cyclic shift; commuting the last two factors (the hypothesis, conjugated by `g`) gives
-`x · x^g · x^{g²} = 1`, which is exactly `(g x⁻¹)³ = 1`, and `x⁻¹g` is conjugate to `g x⁻¹`. -/
+The relation `(g x)³ = 1` says `x^{g²} · x^g · x = 1`. A cyclic shift gives
+`x · x^{g²} · x^g = 1`. The hypothesis, conjugated by `g`, lets us swap the last two factors. This
+gives `x · x^g · x^{g²} = 1`, which says `(g x⁻¹)³ = 1`. Finally, `x⁻¹ g` is conjugate to
+`g x⁻¹`. -/
 theorem inv_mul_pow_three_eq_one_of_commute_conj (hg : g ^ 3 = 1) (hgx : (g * x) ^ 3 = 1)
     (hcomm : x * (g⁻¹ * x * g) = (g⁻¹ * x * g) * x) : (x⁻¹ * g) ^ 3 = 1 := by
   -- `x^{g²} · (x^g · x) = 1`.
@@ -135,31 +116,18 @@ theorem inv_mul_pow_three_eq_one_of_commute_conj (hg : g ^ 3 = 1) (hgx : (g * x)
         simp only [pow_succ, pow_zero, one_mul]; group
     _ = 1 := by rw [h4]; group
 
-end LemmaA
+end PowThree
 
-section LemmaC
+section CrossCommute
 
 variable {a₀ a₁ a₂ b₀ b₁ b₂ : G}
 
-/-- **Lemma C** (the cancellation behind the partial resolution of BG Appendix C, Problem 1).
+/-- Suppose that `a₂ a₁ a₀ = 1`, `b₂ b₁ b₀ = 1` and `(a₂ b₂)(a₁ b₁)(a₀ b₀) = 1`, and that
+`a₁ b₁ = b₁ a₁` and `a₀ b₀ = b₀ a₀`. Then `a₁ b₀ = b₀ a₁`.
 
-Suppose three "layered" relations hold,
-
-* `a₂ * a₁ * a₀ = 1`,
-* `b₂ * b₁ * b₀ = 1`,
-* `(a₂ * b₂) * (a₁ * b₁) * (a₀ * b₀) = 1`,
-
-and that same-layer elements commute, `a₁ * b₁ = b₁ * a₁` and `a₀ * b₀ = b₀ * a₀`.  Then the
-*cross-layer* pair commutes as well: `a₁ * b₀ = b₀ * a₁`.
-
-Solving the first two relations for the top layer turns the third into
-`(a₁b₁)(a₀b₀) = (b₁b₀)(a₁a₀)`; cancelling `b₁` on the left and `a₀` on the right — each licensed
-by one of the same-layer commutations — leaves exactly `a₁b₀ = b₀a₁`.
-
-In the application the three layers are `P`, `P^g` and `P^{g²}` for an element `g` of order three,
-and the three relations are the `σ(U)`-conjugates of `(g * x)³ = 1` evaluated at `s`, `t` and
-`s + t` in the set of squares of `𝔽_{3^q}`; the hypotheses hold because each layer is abelian and
-because conjugation is additive on `P`. -/
+Solve the first two relations for `a₂` and `b₂`. Then the third relation becomes
+`(a₁ b₁)(a₀ b₀) = (b₁ b₀)(a₁ a₀)`. Cancel `b₁` on the left and `a₀` on the right, using the two
+commutations. -/
 theorem cross_commute_of_three_relations (ha : a₂ * a₁ * a₀ = 1) (hb : b₂ * b₁ * b₀ = 1)
     (hab : a₂ * b₂ * (a₁ * b₁) * (a₀ * b₀) = 1) (h₁ : a₁ * b₁ = b₁ * a₁)
     (h₀ : a₀ * b₀ = b₀ * a₀) : a₁ * b₀ = b₀ * a₁ := by
@@ -189,26 +157,15 @@ theorem cross_commute_of_three_relations (ha : a₂ * a₁ * a₀ = 1) (hb : b�
 
 section Semilinear
 
-/-- **Semilinearity of the layer map.**  Suppose `g` normalizes a subgroup with exponent `e`, in
-the sense `g · v = vᵉ · g`.  Then conjugating the `g`-layer by `v` shifts the base point by `vᵉ`:
-
-`(z^g)^v = (z^{vᵉ})^g`.
-
-This is the rule that produces the relation family for a *non-centralising* action: conjugating
-`x^{g²} · x^g · x = 1` by `v ∈ σ(U)` gives
-
-`(x^{v^{e²}})^{g²} · (x^{v^e})^g · x^v = 1`,
-
-the twisted relation `R(s)` of the partial resolution.  For `e = 1` it degenerates to the plain
-statement that conjugation by `v` commutes with the layer map, which is what
-`pow_three_mul_conj_eq_one` uses. -/
+/-- Suppose that `g v = vᵉ g`. Then `(z^g)^v = (z^{vᵉ})^g`, where `z^g = g⁻¹ z g`. -/
 theorem conj_layer_of_exp {g v : G} {e : ℕ} (hexp : g * v = v ^ e * g) (z : G) :
     v⁻¹ * (g⁻¹ * z * g) * v = g⁻¹ * ((v ^ e)⁻¹ * z * v ^ e) * g := by
   calc v⁻¹ * (g⁻¹ * z * g) * v = (g * v)⁻¹ * z * (g * v) := by group
     _ = (v ^ e * g)⁻¹ * z * (v ^ e * g) := by rw [hexp]
     _ = g⁻¹ * ((v ^ e)⁻¹ * z * v ^ e) * g := by group
 
-/-- Iterating `conj_layer_of_exp`: the second layer moves by `v^{e²}`. -/
+/-- Suppose that `g v = vᵉ g` and `g vᵉ = (vᵉ)ᵉ g`. Then
+`(z^{g²})^v = (z^{v^{e²}})^{g²}`. -/
 theorem conj_layer_two_of_exp {g v : G} {e : ℕ} (h₁ : g * v = v ^ e * g)
     (h₂ : g * v ^ e = (v ^ e) ^ e * g) (z : G) :
     v⁻¹ * (g⁻¹ * (g⁻¹ * z * g) * g) * v
@@ -217,27 +174,19 @@ theorem conj_layer_two_of_exp {g v : G} {e : ℕ} (h₁ : g * v = v ^ e * g)
 
 end Semilinear
 
-end LemmaC
+end CrossCommute
 
-/-- **Theorem 1's engine** (twisted form).  Let `P` be an abelian subgroup, `g` an element with
-`σ` an endomorphism preserving `P`, and `S ⊆ P` a set of elements satisfying the *layered*
-relation
+/-- Let `P` be an abelian subgroup and `g ∈ G`. Let `σ : G → G` map `P` into `P` and be
+multiplicative on `P`. Let `S ⊆ P` be a set such that
 
-`(σ²s)^{g²} · (σs)^g · s = 1`.
+`(σ (σ s))^{g²} · (σ s)^g · s = 1` for every `s ∈ S`,
 
-Fix `t ∈ S`.  If `σ` maps the elements `s ∈ S` with `s · t ∈ S` onto a generating set of `P`, then
+where `z^g = g⁻¹ z g`. Fix `t ∈ S`, and suppose that the elements `σ s`, for `s ∈ S` with
+`s t ∈ S`, generate a subgroup that contains `P`. Then `t` commutes with `v^g` for every `v ∈ P`.
 
-`t · v^g = v^g · t` for every `v ∈ P`.
-
-For each admissible `s` the three relations at `s`, `t` and `s · t` feed
-`cross_commute_of_three_relations` — the middle layers multiply correctly because `σ` is a
-homomorphism — and the elements commuting with `t` after conjugation form a subgroup, so a
-generating set suffices.
-
-In the application `P` is the additive group of `𝔽_{3^q}`, `S` the set of squares, `t = 1`, and
-`σ` a power of the Frobenius: that is exactly the case `e ∈ ⟨3⟩` of the partial resolution, where
-`s ↦ s^e` is additive.  `commute_conj_of_le_closure` is the untwisted specialisation `σ = id`
-(the centralising case `e = 1`, available for every `q`). -/
+For each such `s`, the relations at `s`, `t` and `s t` satisfy the hypotheses of
+`cross_commute_of_three_relations`. So `t` commutes with `(σ s)^g`. The elements `v` for which `t`
+commutes with `v^g` form a subgroup. -/
 theorem commute_conj_of_le_closure_twisted {P : Subgroup G}
     (hP : ∀ a ∈ P, ∀ b ∈ P, a * b = b * a) {g : G} (σ : G → G)
     (hσmul : ∀ a ∈ P, ∀ b ∈ P, σ (a * b) = σ a * σ b)

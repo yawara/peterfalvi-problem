@@ -33,25 +33,20 @@ namespace PeterfalviProblem
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-- **The twisted relation family.**  Suppose `g = x^y` normalizes `σ(U)` with exponent `e`, i.e.
-`g w = wᵉ g` for `w ∈ σ(U)` (the general case `e ≠ 1`).  Conjugating `(g x)³ = 1` by `v ∈ σ(U)`
-and pushing the conjugation through the layers with `conj_layer_of_exp` gives
+/-- **The relation family in `G`.** Suppose that `g w = wᵉ g` for all `w ∈ σ(U)`. Conjugating
+`(g x)³ = 1` by `v ∈ σ(U)` and moving the conjugation through the three factors with
+`conj_layer_of_exp` gives
 
-`(x^{v^{e²}})^{g²} · (x^{v^e})^g · x^v = 1`.
+`(x^{v^{e²}})^{g²} · (x^{vᵉ})^g · x^v = 1`,
 
-This is the relation `R(s)` of `notes/bg/appC_problem1_partial_resolution.md` in its layered form:
-the three layers are based at `v^{e²}`, `v^e` and `v`, which under the identification of `σ(P)`
-with `𝔽_{3^q}` are the field elements `s^{e²}`, `s^e` and `s`.  Feeding this family to
-`commutator_eq_top_of_relations` is what makes `N` perfect when the relation lattice spans. -/
+where `z^h = h⁻¹ z h`. -/
 theorem layered_relation_of_exp (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data) {v : G} (hv : v ∈ data.U) :
     (conjGen data)⁻¹ * ((conjGen data)⁻¹ * ((v ^ (e * e))⁻¹ * data.s * v ^ (e * e)) *
         conjGen data) * conjGen data *
       (((conjGen data)⁻¹ * ((v ^ e)⁻¹ * data.s * v ^ e) * conjGen data) *
         (v⁻¹ * data.s * v)) = 1 := by
-  have hx3 : data.s ^ 3 = 1 := by
-    subst hp
-    rw [Witness.s, ← map_pow, primeLineGenerator_pow_p, map_one]
+  have hx3 : data.s ^ 3 = 1 := s_pow_three data hp
   have hg3 : (conjGen data) ^ 3 = 1 := by
     rw [conjGen_def, ← map_pow, hx3, map_one]
   -- The layered form of `(g x)³ = 1`.
@@ -70,14 +65,12 @@ theorem layered_relation_of_exp (data : Witness p q G) (hp : p = 3) {e : ℕ}
     conj_layer_of_exp (hexp v hv) data.s] at hconj
   exact hconj
 
-/-- **The exponent has order three on `σ(U)`.**  Conjugating three times by `g` is conjugating by
-`g³ = 1`, so `w^{e³} = w` for every `w ∈ σ(U)`. -/
+/-- If `g w = wᵉ g` for all `w ∈ σ(U)`, then `w^{e³} = w` for all `w ∈ σ(U)`. Indeed
+conjugating by `g` three times is conjugating by `g³ = 1`. -/
 theorem pow_three_exp_eq_self (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data) {z : G} (hz : z ∈ data.U) :
     z ^ (e * e * e) = z := by
-  have hx3 : data.s ^ 3 = 1 := by
-    subst hp
-    rw [Witness.s, ← map_pow, primeLineGenerator_pow_p, map_one]
+  have hx3 : data.s ^ 3 = 1 := s_pow_three data hp
   have hg3 : conjGen data ^ 3 = 1 := by rw [conjGen_def, ← map_pow, hx3, map_one]
   have step : ∀ w ∈ data.U, conjGen data * w * (conjGen data)⁻¹ = w ^ e := by
     intro w hw
@@ -99,13 +92,11 @@ theorem pow_three_exp_eq_self (data : Witness p q G) (hp : p = 3) {e : ℕ}
 
 /-! ### The relation family in field coordinates
 
-The collision-span computation runs entirely in `𝔽_{3^q}`, so the relation family has to be read
-through the identification of `σ(P)` with the field.  `layerFieldHom data i` is the `i`-th layer
-`t ↦ (gⁱ)⁻¹ σ(inl t) gⁱ`, and `layered_relation_field` is the relation `d(t^{E²}) b(t^E) a(t) = 1`
-of `notes/bg/appC_problem1_partial_resolution.md`. -/
+From here on we work in `𝔽_{3^q}`. The layer `layerFieldHom data i` sends `t` to
+`g⁻ⁱ σ(inl t) gⁱ`. -/
 
-/-- The field element underlying a norm-one unit.  (Notation for the doubly-coerced
-`((u : (GaloisField p q)ˣ) : GaloisField p q)`, which the relation family is full of.) -/
+/-- The field element of a norm-one unit. It abbreviates `((u : (GaloisField p q)ˣ) :
+GaloisField p q)`. -/
 def normOneVal (u : normOneUnits p q) : GaloisField p q :=
   ((u : (GaloisField p q)ˣ) : GaloisField p q)
 
@@ -123,7 +114,7 @@ theorem normOneVal_pow (u : normOneUnits p q) (k : ℕ) :
     normOneVal (u ^ k) = normOneVal u ^ k := by
   simp only [normOneVal, SubgroupClass.coe_pow, Units.val_pow_eq_pow_val]
 
-/-- The element of `σ(U)` attached to a norm-one unit. -/
+/-- The element `σ(inr u)` of `σ(U)`. -/
 noncomputable def unitElt (data : Witness p q G) (u : normOneUnits p q) : G :=
   data.sigma (SemidirectProduct.inr u)
 
@@ -136,7 +127,7 @@ theorem unitElt_pow (data : Witness p q G) (u : normOneUnits p q) (k : ℕ) :
     unitElt data u ^ k = unitElt data (u ^ k) := by
   rw [unitElt, unitElt, ← map_pow, ← map_pow]
 
-/-- **Conjugating `x = σ(1)` by a norm-one unit is multiplication in the field.** -/
+/-- Conjugating `x = σ(inl 1)` by `σ(inr u)` gives `σ(inl u⁻¹)`. -/
 theorem conj_s_unitElt (data : Witness p q G) (u : normOneUnits p q) :
     (unitElt data u)⁻¹ * data.s * unitElt data u =
       fieldHom data (Multiplicative.ofAdd
@@ -146,7 +137,7 @@ theorem conj_s_unitElt (data : Witness p q G) (u : normOneUnits p q) :
     ← map_mul data.sigma, hval]
   rfl
 
-/-- The `i`-th layer of `σ(P)`, in field coordinates. -/
+/-- The `i`-th layer: `t ↦ g⁻ⁱ σ(inl t) gⁱ`. -/
 noncomputable def layerFieldHom (data : Witness p q G) (i : ℕ) :
     Multiplicative (GaloisField p q) →* G :=
   (MulAut.conj (((conjGen data) ^ i)⁻¹) : G →* G).comp (fieldHom data)
@@ -159,20 +150,18 @@ theorem layerFieldHom_apply (data : Witness p q G) (i : ℕ)
   change ((conjGen data) ^ i)⁻¹ * fieldHom data t * (((conjGen data) ^ i)⁻¹)⁻¹ = _
   rw [inv_inv]
 
-/-- Each layer is a faithful copy of `(𝔽_{3^q}, +)`: `fieldHom` is injective because `σ` is, and
-conjugation is a bijection. -/
+/-- Each layer is injective, because `σ` is injective. -/
 theorem layerFieldHom_injective (data : Witness p q G) (i : ℕ) :
     Function.Injective (layerFieldHom data i) := by
   intro s t hst
   simp only [layerFieldHom_apply] at hst
   exact fieldHom_injective data (mul_left_cancel (mul_right_cancel hst))
 
-/-- **The relation family, in field coordinates.**  For every norm-one `u`,
+/-- **The relation family.** For every norm-one `u`,
 
-`d(u^{e²}) · b(u^e) · a(u) = 1`,
+`d(u^{e²}) · b(uᵉ) · a(u) = 1`,
 
-where `a`, `b`, `d` are the three layers.  This is the shape in which the collision-span
-computation of `notes/bg/appC_problem1_partial_resolution.md` uses hypothesis (B). -/
+where `a`, `b` and `d` are the layers `0`, `1` and `2`. -/
 theorem layered_relation_field (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     (u : normOneUnits p q) :
@@ -203,8 +192,8 @@ theorem layered_relation_field (data : Witness p q G) (hp : p = 3) {e : ℕ}
   rw [hshape]
   exact hrel
 
-/-- **The exponent cubes to the identity on the norm-one units.**  Read off the `G`-level
-statement `pow_three_exp_eq_self` through the injectivity of `σ`. -/
+/-- `u^{e³} = u` for every norm-one unit `u`. This is `pow_three_exp_eq_self`, pulled back
+along the injective map `σ`. -/
 theorem normOneUnits_pow_cube (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     (u : normOneUnits p q) : u ^ (e * e * e) = u := by
@@ -212,13 +201,8 @@ theorem normOneUnits_pow_cube (data : Witness p q G) (hp : p = 3) {e : ℕ}
   rw [map_pow, map_pow]
   exact pow_three_exp_eq_self data hp hexp (unitElt_mem_U data u)
 
-/-- **Relation (1) of the collision-span obstruction.**  Substituting `t = r^e` into the relation
-family and using `e³ = 1` on the norm-one units,
-
-`d(r) = a(-r^e) · b(-r^{e²})`,
-
-i.e. the third layer at `r` is a product of one element of the first layer and one of the second.
-(`notes/bg/appC_problem1_partial_resolution.md`, step 1 of the criterion.) -/
+/-- For every norm-one `r`, `d(r) = a(-rᵉ) · b(-r^{e²})`. Apply the relation family to `rᵉ`
+and use `r^{e³} = r`. -/
 theorem layerFieldHom_two_eq (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     (r : normOneUnits p q) :
@@ -238,15 +222,12 @@ theorem layerFieldHom_two_eq (data : Witness p q G) (hp : p = 3) {e : ℕ}
     exact hrel
   rw [eq_inv_iff_mul_eq_one.mpr hone, mul_inv_rev]
 
-/-- **Relation (2) of the collision-span obstruction.**  For `p` in the Paley set
-`T = {p ∈ U : p - 1 ∈ U}` (given here as a pair `p₀ = p`, `p₁ = p - 1` of norm-one units) and any
-norm-one `z`, splitting `z = p z - (p-1) z` and applying relation (1) twice gives the exact
-non-commutative factorisation
+/-- Let `p₀ = p₁ + 1` with `p₀` and `p₁` norm-one, and let `z` be norm-one. Then
 
-`d(z) = a(-p^e z^e) · b(K(p) z^{e²}) · a((p-1)^e z^e)`,  `K(p) = (p-1)^{e²} - p^{e²}`.
+`d(z) = a(-p₀ᵉ zᵉ) · b(K z^{e²}) · a(p₁ᵉ zᵉ)`, where `K = p₁^{e²} - p₀^{e²}`.
 
-The two second-layer factors merge because the layer is the image of a homomorphism from an
-abelian group.  This is the identity whose *collisions* drive the whole obstruction. -/
+Write `z = p₀ z - p₁ z` and apply `layerFieldHom_two_eq` to `p₀ z` and to `p₁ z`. The two factors
+in the layer `b` merge, because each layer is a homomorphism from an abelian group. -/
 theorem layerFieldHom_two_factor (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     (p₀ p₁ z : normOneUnits p q) (hpp : normOneVal p₀ = normOneVal p₁ + 1) :
@@ -279,17 +260,13 @@ theorem layerFieldHom_two_factor (data : Witness p q G) (hp : p = 3) {e : ℕ}
   congr 1
   rw [← mul_assoc, hb]
 
-/-- **Relation (3) of the collision-span obstruction: a collision conjugates one second-layer
-element into another.**  If `p` and `r` both lie in the Paley set and *collide*, i.e.
+/-- Let `p₀ = p₁ + 1` and `r₀ = r₁ + 1` be two such pairs with `p₀ᵉ - p₁ᵉ = r₀ᵉ - r₁ᵉ`. Write
+`δ = r₀ᵉ - p₀ᵉ`, `K(p) = p₁^{e²} - p₀^{e²}` and `K(r) = r₁^{e²} - r₀^{e²}`. Comparing the two
+factorizations of `d(z)` from `layerFieldHom_two_factor` gives
 
-`p^e - (p-1)^e = r^e - (r-1)^e`,
+`b(K(r) z^{e²}) = a(δ zᵉ) · b(K(p) z^{e²}) · a(-δ zᵉ)`.
 
-then, with `δ = r^e - p^e`, equating the two factorisations of `d(z)` gives
-
-`b(K(r) z^{e²}) = a(δ z^e) · b(K(p) z^{e²}) · a(-δ z^e)`.
-
-Conjugation by a *first*-layer element therefore maps a second-layer element back into the second
-layer — the whole point of the obstruction. -/
+So conjugation by an element of the layer `a` maps one element of the layer `b` to another. -/
 theorem layerFieldHom_one_conj (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     (p₀ p₁ r₀ r₁ z : normOneUnits p q)

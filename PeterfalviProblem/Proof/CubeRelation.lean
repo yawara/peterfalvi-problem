@@ -32,14 +32,12 @@ namespace PeterfalviProblem
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-- Conjugation by the generator `x = σ(1)` of `σ(P₀)` preserves `Q`, since `σ(P₀)` normalizes
-`Q` by hypothesis (B). -/
+/-- `x⁻¹ z x ∈ Q` for `z ∈ Q`, because `σ(P₀)` normalizes `Q`. -/
 theorem conj_mem_Q (data : Witness p q G) (z : G) (hz : z ∈ data.Q) :
     data.s⁻¹ * z * data.s ∈ data.Q :=
   (Subgroup.mem_normalizer_iff''.mp (data.P0_normalizes_Q data.s_mem_P0) z).mp hz
 
-/-- The commutator `c = x⁻¹ · x^y = ⁅x, y⁆` lies in `Q`: it is the product of `x⁻¹ y x ∈ Q` and
-`y⁻¹ ∈ Q`. -/
+/-- `c = x⁻¹ (y x y⁻¹)` lies in `Q`: it is the product of `x⁻¹ y x ∈ Q` and `y⁻¹ ∈ Q`. -/
 theorem inv_mul_conj_mem_Q (data : Witness p q G) :
     data.s⁻¹ * MulAut.conj data.y data.s ∈ data.Q := by
   have h1 : data.s⁻¹ * data.y * data.s ∈ data.Q := conj_mem_Q data data.y data.y_mem_Q
@@ -50,27 +48,22 @@ theorem inv_mul_conj_mem_Q (data : Witness p q G) :
   rw [h2]
   exact data.Q.mul_mem h1 (data.Q.inv_mem data.y_mem_Q)
 
-/-- **The single relation hypothesis (B) yields**, for `p = 3`.
+/-- `x³ = 1` when `p = 3`. -/
+theorem s_pow_three (data : Witness p q G) (hp : p = 3) : data.s ^ 3 = 1 := by
+  subst hp
+  rw [Witness.s, ← map_pow, primeLineGenerator_pow_p, map_one]
 
-Let `data` be a witness of BG Appendix C, hypothesis (B), let `x = σ(1)` be the distinguished
-generator of `σ(P₀)` (`Witness.s`) and let `g = x^y` be its conjugate by the element
-`y ∈ Q`, so that `⟨g⟩ = σ(P₀)^y` is the subgroup (B) requires to normalize `σ(U)`.  Then
+/-- **The relation `(g x)³ = 1`**, for `p = 3` and `g = y x y⁻¹`.
 
-`(g * x)³ = 1`.
+Both `g` and `x` have order three, and the relation says that their product has order dividing
+three. This is the only relation that the proof takes from hypothesis (B).
 
-Both `g` and `x` have order three, so the assertion is that their *product* again has order
-dividing three.  Nothing else about (B) is used downstream: conjugating this one relation by
-`σ(U)` produces the whole family that drives the partial resolution of Problem 1 recorded in
-`notes/bg/appC_problem1_partial_resolution.md`.
-
-The proof is `pow_three_mul_pow_three_eq_one` applied to `c = x⁻¹g = ⁅x, y⁆`: since `x`
-normalizes `Q` and `y ∈ Q` the element `c` lies in `Q`, and `Q` is abelian, so `c` commutes with
-its conjugate `x⁻¹cx ∈ Q`. -/
+The proof applies `pow_three_mul_pow_three_eq_one` to `c = x⁻¹ g`. The element `c` lies in `Q`,
+and so does `x⁻¹ c x`. Since `Q` is abelian, they commute. -/
 theorem conj_mul_pow_three_eq_one (data : Witness p q G) (hp : p = 3) :
     (MulAut.conj data.y data.s * data.s) ^ 3 = 1 := by
   subst hp
-  have hx3 : data.s ^ 3 = 1 := by
-    rw [Witness.s, ← map_pow, primeLineGenerator_pow_p, map_one]
+  have hx3 : data.s ^ 3 = 1 := s_pow_three data rfl
   have hcQ := inv_mul_conj_mem_Q data
   have hcxQ : data.s⁻¹ * (data.s⁻¹ * MulAut.conj data.y data.s) * data.s ∈ data.Q :=
     conj_mem_Q data _ hcQ
@@ -84,37 +77,29 @@ theorem conj_mul_pow_three_eq_one (data : Witness p q G) (hp : p = 3) :
   have key := pow_three_mul_pow_three_eq_one hx3 hcomm hg3
   rwa [hxc] at key
 
-/-- The conjugate `g = x^y` of the generator `x = σ(1)` of `σ(P₀)`: a generator of the subgroup
-`σ(P₀)^y` that hypothesis (B) requires to normalize `σ(U)`. -/
+/-- The element `g = y x y⁻¹`. It generates `y σ(P₀) y⁻¹`, which normalizes `σ(U)`. In the
+notation of hypothesis (B), `g = x^y`. -/
 noncomputable def conjGen (data : Witness p q G) : G := MulAut.conj data.y data.s
 
 @[simp]
 theorem conjGen_def (data : Witness p q G) :
     conjGen data = MulAut.conj data.y data.s := rfl
 
-/-- `g = x^y` has order dividing three, because `x` does. -/
+/-- `g³ = 1` when `p = 3`, because `x³ = 1`. -/
 theorem conjGen_pow_three (data : Witness p q G) (hp : p = 3) :
     conjGen data ^ 3 = 1 := by
-  have hx3 : data.s ^ 3 = 1 := by
-    rw [← hp, Witness.s, ← map_pow, primeLineGenerator_pow_p, map_one]
-  rw [conjGen_def, ← map_pow, hx3, map_one]
+  rw [conjGen_def, ← map_pow, s_pow_three data hp, map_one]
 
-/-- **Theorem 1, assembled.**  In a witness of hypothesis (B) with `p = 3`, the generator
-`x = σ(1)` of `σ(P₀)` cannot commute with its conjugate `x^g`, where `g = x^y` generates
-`σ(P₀)^y`.
+/-- **The final contradiction.** For `p = 3`, the element `x` does not commute with `g⁻¹ x g`.
 
-This is everything of Theorem 1 except the production of the relation family (conjugating
-`(g x)³ = 1` by `σ(U)`) and the Paley-type spanning lemma: given those,
-`commute_conj_of_le_closure_twisted` supplies the commutation and this theorem closes the
-argument.  The chain here is `(g x)³ = 1` (from (B)) → `(x⁻¹g)³ = 1` (the last mile) →
-`x⁻¹g = 1` (because `Q` is a `3′`-group) → `g = x`, which is absurd since `⟨g⟩` normalizes `σ(U)`
-while `x` does not (`Witness.s_not_normalizes_U`). -/
+Suppose it did. By `inv_mul_pow_three_eq_one_of_commute_conj` and `(g x)³ = 1`, the element
+`c = x⁻¹ g` satisfies `c³ = 1`. But `c ∈ Q` and `|Q|` is prime to `3`, so `c = 1` and `g = x`.
+This is impossible: `g` normalizes `σ(U)` and `x` does not (`Witness.s_not_normalizes_U`). -/
 theorem not_commute_conj (data : Witness p q G) (hp : p = 3) :
     ¬ Commute data.s ((MulAut.conj data.y data.s)⁻¹ * data.s * MulAut.conj data.y data.s) := by
   intro hcomm
   subst hp
-  have hx3 : data.s ^ 3 = 1 := by
-    rw [Witness.s, ← map_pow, primeLineGenerator_pow_p, map_one]
+  have hx3 : data.s ^ 3 = 1 := s_pow_three data rfl
   have hg3 : (MulAut.conj data.y data.s) ^ 3 = 1 := by
     rw [← map_pow, hx3, map_one]
   have hgx : (MulAut.conj data.y data.s * data.s) ^ 3 = 1 :=
@@ -139,7 +124,7 @@ theorem q_odd (data : Witness p q G) (hp : p = 3) : Odd q := by
   subst hp
   exact data.q_prime.odd_of_ne_two fun h => data.q_not_dvd (by subst h; decide)
 
-/-- The image `σ(P)` of the additive kernel is abelian. -/
+/-- `σ(P)` is abelian. -/
 theorem P_mul_comm (data : Witness p q G) {a b : G} (ha : a ∈ data.P)
     (hb : b ∈ data.P) : a * b = b * a := by
   have : IsMulCommutative (normOneFrobeniusKernel p q) := by
@@ -152,8 +137,8 @@ theorem P_mul_comm (data : Witness p q G) {a b : G} (ha : a ∈ data.P)
   congr 1
   exact setLike_mul_comm (s := normOneFrobeniusKernel p q) ha' hb'
 
-/-- The additive group of `𝔽_{p^q}`, written multiplicatively, mapped into `G` by
-`a ↦ σ(inl a)`.  Its range is `σ(P)`. -/
+/-- The homomorphism `a ↦ σ(inl a)` from the additive group of `𝔽_{p^q}` (written
+multiplicatively) to `G`. It is injective, with image `σ(P)`. -/
 noncomputable def fieldHom (data : Witness p q G) :
     Multiplicative (GaloisField p q) →* G :=
   data.sigma.comp SemidirectProduct.inl
