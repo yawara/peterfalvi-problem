@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yawara Ishida
 -/
 import PeterfalviProblem.Algebra.InverseClosedSubgroup
-import PeterfalviProblem.Proof.Collision
+import PeterfalviProblem.Proof.FieldLayers
 
 /-!
 # BG Appendix C, Problem 1: the same-coset obstruction
@@ -50,13 +50,6 @@ section SameCoset
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-- `g = x^y` has order dividing three, because `x` does. -/
-theorem conjGen_pow_three (data : FieldNormalizerData p q G) (hp : p = 3) :
-    conjGen data ^ 3 = 1 := by
-  have hx3 : data.s ^ 3 = 1 := by
-    rw [← hp, FieldNormalizerData.s, ← map_pow, primeLineGenerator_pow_p, map_one]
-  rw [conjGen_def, ← map_pow, hx3, map_one]
-
 /-- Conjugation preserves commutation. -/
 private theorem commute_conj {H : Type*} [Group H] {a b : H} (h : Commute a b) (c : H) :
     Commute (c⁻¹ * a * c) (c⁻¹ * b * c) := by
@@ -66,14 +59,14 @@ private theorem commute_conj {H : Type*} [Group H] {a b : H} (h : Commute a b) (
   rw [e1, e2, h.eq]
 
 /-- Conjugating the zeroth layer by `g²` gives the second. -/
-theorem conj_layerFieldHom_zero (data : FieldNormalizerData p q G)
+theorem conj_layerFieldHom_zero (data : Witness p q G)
     (t : Multiplicative (GaloisField p q)) :
     (conjGen data ^ 2)⁻¹ * layerFieldHom data 0 t * conjGen data ^ 2
       = layerFieldHom data 2 t := by
   simp only [layerFieldHom_apply, pow_zero, inv_one, one_mul, mul_one]
 
 /-- Conjugating the first layer by `g²` gives the zeroth, because `g³ = 1`. -/
-theorem conj_layerFieldHom_one (data : FieldNormalizerData p q G) (hp : p = 3)
+theorem conj_layerFieldHom_one (data : Witness p q G) (hp : p = 3)
     (t : Multiplicative (GaloisField p q)) :
     (conjGen data ^ 2)⁻¹ * layerFieldHom data 1 t * conjGen data ^ 2
       = layerFieldHom data 0 t := by
@@ -86,7 +79,7 @@ theorem conj_layerFieldHom_one (data : FieldNormalizerData p q G) (hp : p = 3)
 
 /-- **The admissible twists.**  `s` belongs to this set when the first layer commutes with the
 `s`-twisted second layer, `[a(t), b(s t^e)] = 1`, for *every* `t`. -/
-def commSubgroup (data : FieldNormalizerData p q G) (e : ℕ) : AddSubgroup (GaloisField p q) where
+def commSubgroup (data : Witness p q G) (e : ℕ) : AddSubgroup (GaloisField p q) where
   carrier := {s | ∀ t : GaloisField p q,
     Commute (layerFieldHom data 0 (Multiplicative.ofAdd t))
       (layerFieldHom data 1 (Multiplicative.ofAdd (s * t ^ e)))}
@@ -108,7 +101,7 @@ def commSubgroup (data : FieldNormalizerData p q G) (e : ℕ) : AddSubgroup (Gal
 /-- **Conjugating the commutation by `g²`.**  The first layer becomes the third and the second
 becomes the first, so an admissible twist `s` also makes the *third* layer commute with the
 `s`-twisted *first* layer. -/
-theorem commute_two_zero_of_mem (data : FieldNormalizerData p q G) (hp : p = 3) {e : ℕ}
+theorem commute_two_zero_of_mem (data : Witness p q G) (hp : p = 3) {e : ℕ}
     {s : GaloisField p q} (hs : s ∈ commSubgroup data e) (t : GaloisField p q) :
     Commute (layerFieldHom data 2 (Multiplicative.ofAdd t))
       (layerFieldHom data 0 (Multiplicative.ofAdd (s * t ^ e))) := by
@@ -122,7 +115,7 @@ private theorem commute_of_mul_left {H : Type*} [Group H] {x y z : H} (hxy : Com
   rwa [inv_mul_cancel_left] at h
 
 /-- The zeroth layer is abelian, being the image of an abelian group. -/
-private theorem commute_zero_zero (data : FieldNormalizerData p q G)
+private theorem commute_zero_zero (data : Witness p q G)
     (x y : Multiplicative (GaloisField p q)) :
     Commute (layerFieldHom data 0 x) (layerFieldHom data 0 y) :=
   (Commute.all x y).map _
@@ -130,7 +123,7 @@ private theorem commute_zero_zero (data : FieldNormalizerData p q G)
 /-- **The relation for twists supported on the norm-one classes.**  Conjugating the commutation by
 `g²` and cancelling the abelian first-layer factor of `d(u) = a(-u^e) · b(-u^{e²})` turns an
 admissible twist `s` into the twist `(s ^ e)⁻¹`, on the arguments `t = s · u^e`. -/
-theorem commute_inv_pow_of_normOne (data : FieldNormalizerData p q G) (hp : p = 3) {e : ℕ}
+theorem commute_inv_pow_of_normOne (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {s : GaloisField p q} (hs : s ∈ commSubgroup data e) (u : normOneUnits p q) :
     Commute (layerFieldHom data 0 (Multiplicative.ofAdd (s * normOneVal u ^ e)))
@@ -148,7 +141,7 @@ theorem commute_inv_pow_of_normOne (data : FieldNormalizerData p q G) (hp : p = 
 /-- **One square class suffices.**  If the defining commutation of `commSubgroup` holds at every
 argument `c * v` with `v` a non-zero square, it holds everywhere: every non-zero `t` is `c * v` or
 `-(c * v)` for such a `v` (as `-1` is a non-square), and the sign is absorbed because `e` is odd. -/
-theorem mem_commSubgroup_of_square (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q ≠ 0)
+theorem mem_commSubgroup_of_square (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     (hqodd : Odd q) {e : ℕ} (he : Odd e) {c s : GaloisField p q} (hc0 : c ≠ 0)
     (hkey : ∀ v : GaloisField p q, IsSquare v → v ≠ 0 →
       Commute (layerFieldHom data 0 (Multiplicative.ofAdd (c * v)))
@@ -198,7 +191,7 @@ theorem mem_commSubgroup_of_square (data : FieldNormalizerData p q G) (hp : p = 
 
 On the arguments `t = s · u^e` with `u` norm-one this is `commute_inv_pow_of_normOne`; the previous
 lemma extends it to every `t`. -/
-theorem mem_commSubgroup_inv_pow (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q ≠ 0)
+theorem mem_commSubgroup_inv_pow (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {s : GaloisField p q} (hs : s ∈ commSubgroup data e) (hs0 : s ≠ 0) :
@@ -228,7 +221,7 @@ theorem mem_commSubgroup_inv_pow (data : FieldNormalizerData p q G) (hp : p = 3)
 is `s ↦ (s ^ (e³))⁻¹ = s⁻¹`, since `e³` acts as the identity on the field.
 
 This is the hypothesis of `PeterfalviProblem.InverseClosed.pow_four_eq_one_or_forall_mem`. -/
-theorem inv_mem_commSubgroup (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q ≠ 0)
+theorem inv_mem_commSubgroup (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
@@ -256,7 +249,7 @@ prime-field branch `s ^ 4 = 1` and `-1` is a non-square, so `s = ±1` and `1` is
 subgroup; in the full branch everything is.  But `1 ∈ commSubgroup` evaluated at `t = 1` says that
 `x = a(1)` commutes with `x^g = b(1)`, which is exactly the endgame `not_commute_conj` of
 Theorem 1. -/
-theorem false_of_mem_commSubgroup_ne_zero (data : FieldNormalizerData p q G) (hp : p = 3)
+theorem false_of_mem_commSubgroup_ne_zero (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)

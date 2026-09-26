@@ -3,176 +3,110 @@ Copyright (c) 2026 Yawara Ishida. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Yawara Ishida
 -/
-import PeterfalviProblem.Basic.NormOneUnits
+import PeterfalviProblem.Basic.FrobeniusGroup
 
 /-!
-# BG Appendix C: the hypotheses (A) and (B) of Theorem C
+# Witnesses of hypothesis (B)
 
-H. Bender and G. Glauberman, *Local Analysis for the Odd Order Theorem*
-(LMS LNS 188, 1994), Appendix C, §1 (p. 145).
+A `Witness p q G` holds the data of hypothesis (B) for the group `G`, together with the two
+conditions on `q` in Proposition 9 of Glauberman–Norton: `q` is prime, and `q ∤ p - 1`
+(condition (A)). It also gives names to the images `P = σ(P)`, `U = σ(U)` and `P₀ = σ(P₀)` in `G`,
+because the proof refers to them all the time.
 
-Theorem C reads: *let `p` and `q` be two primes satisfying condition*
+`HypothesisB.nonempty_witness` builds a witness from hypothesis (B) and the two conditions on `q`.
+The only change is the direction of conjugation. Hypothesis (B) asks `σ(P₀)^y = y⁻¹ σ(P₀) y` to
+normalize `σ(U)`. A witness stores the inverse `y⁻¹` as `Witness.y`. With this element, the same
+subgroup is `y σ(P₀) y⁻¹`, which is `MulAut.conj y • σ(P₀)` in Mathlib.
 
-> **(A)** `((p^q - 1)/(p - 1), p - 1) = 1`.
+## Main results
 
-*Let `P` be the additive group of `𝔽_{p^q}` and `U` the subgroup of `𝔽_{p^q}ˣ` consisting of the
-elements of norm one over `𝔽_p`.  The subgroup `U` acts on `P` by multiplication and we can form
-the semidirect product `H = PU`.  Let `P₀` be the image in `P` of the additive group of `𝔽_p`.
-Furthermore, suppose that there is a group `G` such that hypothesis (B) below holds.*
-
-> **(B)** *There is a monomorphism `σ : H → G`, a finite abelian `p'`-subgroup `Q` of `G`, and an
-> element `y ∈ Q` such that `σ(P₀)` normalizes `Q` and `σ(P₀)^y` normalizes `U`.*
-
-*Then `p ≤ q`.*
-
-This file carries the two hypotheses in the book's `p, q, G`-abstract form.  It sits **upstream**
-of both the Peterfalvi Section 16 development (which supplies a concrete instance of (B) along the
-Feit–Thompson spine) and of `PeterfalviProblem.BG.AppC_FinalContradiction` (which assembles Theorem C), so
-that the Lemma C.1--C.3 machinery can be stated against these hypotheses rather than against the
-Section 16 configuration.
-
-## Main definitions
-
-* `conditionA p q` — condition (A).
-* `primeLine p q` — the prime-field line `P₀ ≤ P ≤ H`.
-* `HypothesisBAbstract p q G` — hypothesis (B).
-
-## Implementation notes
-
-`H = PU` is `normOneFrobeniusGroup p q`, `P` is `normOneFrobeniusKernel p q` and
-`U` is `normOneFrobeniusComplement p q`.  Following the book's Remark (VI) ("we will
-identify `H` with its image in `G`"), the two normalizer clauses of (B) are stated for the
-*images* `σ(P₀)` and `σ(U)`.
+* `Witness.s_not_normalizes_U`: the element `x = σ(inl 1)` of `σ(P₀)` does not normalize `σ(U)`.
+* `Witness.eq_one_of_mem_Q_of_pow_p_eq_one`: an element of `Q` of order dividing `p` is trivial.
 -/
 
 namespace PeterfalviProblem
 
 open scoped Pointwise
 
-/-- **BG Appendix C, Condition (A)**: the cyclotomic factor attached to
-`F_{p^q}` is coprime to `p - 1`.
-
-By Remark (I) this is equivalent to `q ∤ p - 1` (`conditionA_iff_not_dvd`). -/
-def conditionA (p q : ℕ) : Prop :=
-  Nat.Coprime ((p ^ q - 1) / (p - 1)) (p - 1)
-
-/-- **BG Appendix C**, the prime-field line `P₀ ≤ P`: the image in `P = 𝔽_{p^q}` of the additive
-group of `𝔽_p`, i.e. the `𝔽_p`-span of `1`, viewed inside `H = P ⋊ U`. -/
-noncomputable def primeLine (p q : ℕ) [Fact p.Prime] :
-    Subgroup (normOneFrobeniusGroup p q) :=
-  normOneFrobeniusSubspaceKernel p q
-    (Submodule.span (ZMod p) ({(1 : GaloisField p q)} : Set (GaloisField p q)))
-
-/-- The element of the prime-field line `P₀ ≤ P ≤ H` corresponding to a scalar `c : ZMod p`,
-i.e. `algebraMap c ∈ 𝔽_p ⊆ 𝔽_{p^q}` read inside the additive kernel. -/
-noncomputable def primeLineElement (p q : ℕ) [Fact p.Prime] (c : ZMod p) :
-    normOneFrobeniusGroup p q :=
-  SemidirectProduct.inl (Multiplicative.ofAdd (algebraMap (ZMod p) (GaloisField p q) c))
-
-/-- The distinguished nonidentity element of the prime-field line `P₀`, corresponding to
-`1 : 𝔽_{p^q}` in BG Appendix C. -/
-noncomputable def primeLineGenerator (p q : ℕ) [Fact p.Prime] :
-    normOneFrobeniusGroup p q :=
-  SemidirectProduct.inl (Multiplicative.ofAdd (1 : GaloisField p q))
-
-/-- **BG Appendix C, Hypothesis (B)** (p. 145), in the book's `p, q, G`-abstract form: no
-Peterfalvi Section 16 configuration anywhere in the statement.
-
-Verbatim: *"There is a monomorphism `σ : H → G`, a finite abelian `p'`-subgroup `Q` of `G`, and an
-element `y ∈ Q` such that `σ(P₀)` normalizes `Q` and `σ(P₀)^y` normalizes `U`."*  Here
-`H = P ⋊ U` is `normOneFrobeniusGroup p q`, `P₀` is `primeLine p q`, and `U` is
-identified with its image `σ(U)` inside `G` (Remark (VI)).
-
-The conjugation is written `MulAut.conj y • σ(P₀) = y σ(P₀) y⁻¹`; since `Q` is a subgroup,
-feeding it `y⁻¹` recovers the book's `σ(P₀)^y = y⁻¹ σ(P₀) y` verbatim, so the two readings define
-the same hypothesis.
-
-The concrete Peterfalvi Section 16 instance of (B) along the Feit--Thompson spine is
-`PeterfalviProblem.Peterfalvi.S16.FieldNormalizerData`.  What is still missing to run Theorem C off the
-abstract form is the implication *(B) ⟹ `hrel`* (BG Lemma C.3), currently available only through
-Section 16; see issue 0151.
-
-`hypothesisBAbstract_sl2` (in `PeterfalviProblem.BG.AppC_SL2Example`) is the book's Remark (II) witness,
-showing this hypothesis is satisfiable (`p = 2`, `G = SL(2, 2^q)`). -/
-structure HypothesisBAbstract (p q : ℕ) [Fact p.Prime] (G : Type*) [Group G] where
-  /-- The monomorphism `σ : H = P ⋊ U → G`. -/
-  sigma : normOneFrobeniusGroup p q →* G
-  /-- `σ` is a monomorphism. -/
-  sigma_injective : Function.Injective sigma
-  /-- The finite abelian `p'`-subgroup `Q ≤ G`. -/
-  Q : Subgroup G
-  /-- `Q` is finite. -/
-  Q_finite : Finite Q
-  /-- `Q` is abelian. -/
-  Q_commutative : IsMulCommutative Q
-  /-- `Q` is a `p'`-group. -/
-  Q_pPrime : ¬ p ∣ Nat.card Q
-  /-- The distinguished element `y ∈ Q`. -/
-  y : G
-  /-- `y` lies in `Q`. -/
-  y_mem_Q : y ∈ Q
-  /-- `σ(P₀)` normalizes `Q`. -/
-  primeLine_normalizes_Q :
-    (primeLine p q).map sigma ≤ Subgroup.normalizer (Q : Set G)
-  /-- `σ(P₀)^y` normalizes `σ(U)`. -/
-  primeLine_conj_normalizes_U :
-    MulAut.conj y • ((primeLine p q).map sigma) ≤
-      Subgroup.normalizer
-        (((normOneFrobeniusComplement p q).map sigma : Subgroup G) : Set G)
-
-/-! ## Hypothesis (B) with the three images named -/
-
-section Data
-
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-- **Field-normalizer data**: hypothesis (B) together with condition (A), with the three
-subgroups `σ(P)`, `σ(U)`, `σ(P₀)` given names.
+variable (p q G) in
+/-- A witness of hypothesis (B) for the primes `p`, `q` and the group `G`, with condition (A).
 
-This is the shape in which the Lemma C.1--C.3 development consumes Theorem C's hypotheses: the
-proofs constantly refer to the ambient subgroups `P = σ(P)`, `U = σ(U)` and `W₂ = σ(P₀)` of `G`,
-so it is convenient to carry them as fields with their defining equations rather than to unfold
-`Subgroup.map` everywhere.
-
-The packaging adds **nothing**: `HypothesisBAbstract.toFieldNormalizerData` builds it from (B)
-and (A) alone, taking the three subgroups to be literally the images (all three equations are
-`rfl`).  So a `FieldNormalizerData` is exactly "(A) and (B)". -/
-structure FieldNormalizerData (p q : ℕ) [Fact p.Prime] (G : Type*) [Group G]
-    extends HypothesisBAbstract p q G where
-  /-- The image `P = σ(P)` of the additive kernel. -/
+The subgroups `P`, `U` and `P₀` of `G` are the images of `normOneFrobeniusKernel p q`,
+`normOneFrobeniusComplement p q` and `primeLine p q` under `sigma`. The element `y` is the
+inverse of the element `y` of hypothesis (B); see the module docstring. -/
+structure Witness where
+  /-- The injective homomorphism `σ : H → G`. -/
+  sigma : normOneFrobeniusGroup p q →* G
+  sigma_injective : Function.Injective sigma
+  /-- The finite abelian subgroup `Q` of `G`, of order prime to `p`. -/
+  Q : Subgroup G
+  Q_finite : Finite Q
+  Q_commutative : IsMulCommutative Q
+  Q_pPrime : ¬ p ∣ Nat.card Q
+  /-- The element `y ∈ Q`: the inverse of the element `y` of hypothesis (B). -/
+  y : G
+  y_mem_Q : y ∈ Q
+  /-- The image `P = σ(P)`. -/
   P : Subgroup G
-  /-- The image `U = σ(U)` of the norm-one complement. -/
+  /-- The image `U = σ(U)`. -/
   U : Subgroup G
-  /-- The image `W₂ = σ(P₀)` of the prime-field line. -/
-  W2 : Subgroup G
-  /-- `P` is the image of the additive kernel. -/
+  /-- The image `P₀ = σ(P₀)`. -/
+  P0 : Subgroup G
   sigma_P_eq_P : (normOneFrobeniusKernel p q).map sigma = P
-  /-- `U` is the image of the norm-one complement. -/
   sigma_U_eq_U : (normOneFrobeniusComplement p q).map sigma = U
-  /-- `W₂` is the image of the prime-field line. -/
-  sigma_P0_eq_W2 : (primeLine p q).map sigma = W2
-  /-- `q` is prime (the standing hypothesis of Theorem C). -/
+  sigma_P0_eq_P0 : (primeLine p q).map sigma = P0
+  /-- `σ(P₀)` normalizes `Q`. -/
+  P0_normalizes_Q : P0 ≤ Subgroup.normalizer (Q : Set G)
+  /-- `y σ(P₀) y⁻¹` normalizes `σ(U)`. -/
+  P0_conj_y_normalizes_U : MulAut.conj y • P0 ≤ Subgroup.normalizer (U : Set G)
   q_prime : q.Prime
-  /-- `p` is odd.  By **Remark (V)** ("by (A), we can assume `p` and `q` are odd") this costs
-  nothing: `le_of_conditionA_of_not_odd` disposes of the even case outright. -/
-  p_odd : Odd p
-  /-- Condition (A). -/
-  cyclotomic_coprime : conditionA p q
+  /-- Condition (A): `q ∤ p - 1`. -/
+  q_not_dvd : ¬ q ∣ p - 1
 
-namespace FieldNormalizerData
+/-- Conjugating the image of a homomorphism is the image of the conjugated homomorphism. -/
+theorem conj_smul_map {H : Type*} [Group H] (g : G) (K : Subgroup H) (f : H →* G) :
+    MulAut.conj g • K.map f = K.map ((MulAut.conj g).toMonoidHom.comp f) := by
+  ext z
+  simp only [Subgroup.mem_smul_pointwise_iff_exists, Subgroup.mem_map, MonoidHom.coe_comp,
+    MulEquiv.coe_toMonoidHom, Function.comp_apply, MulAut.smul_def]
+  constructor
+  · rintro ⟨_, ⟨k, hk, rfl⟩, rfl⟩
+    exact ⟨k, hk, rfl⟩
+  · rintro ⟨k, hk, rfl⟩
+    exact ⟨f k, ⟨k, hk, rfl⟩, rfl⟩
 
-/-- `W₂ = σ(P₀)` normalizes `Q`: clause (B) read through `sigma_P0_eq_W2`. -/
-theorem W2_normalizes_Q (data : FieldNormalizerData p q G) :
-    data.W2 ≤ Subgroup.normalizer (data.Q : Set G) := by
-  rw [← data.sigma_P0_eq_W2]
-  exact data.primeLine_normalizes_Q
+/-- Hypothesis (B), together with the conditions that `q` is prime and `q ∤ p - 1`, gives a
+witness. -/
+theorem HypothesisB.nonempty_witness (hB : HypothesisB p q G) (hq : q.Prime)
+    (hA : ¬ q ∣ p - 1) : Nonempty (Witness p q G) := by
+  obtain ⟨σ, hσ, Q, hQfin, hQcomm, hQp, y, hyQ, hP0Q, hP0U⟩ := hB
+  exact ⟨{
+    sigma := σ
+    sigma_injective := hσ
+    Q := Q
+    Q_finite := hQfin
+    Q_commutative := hQcomm
+    Q_pPrime := hQp
+    y := y⁻¹
+    y_mem_Q := Q.inv_mem hyQ
+    P := (normOneFrobeniusKernel p q).map σ
+    U := (normOneFrobeniusComplement p q).map σ
+    P0 := (primeLine p q).map σ
+    sigma_P_eq_P := rfl
+    sigma_U_eq_U := rfl
+    sigma_P0_eq_P0 := rfl
+    P0_normalizes_Q := hP0Q
+    P0_conj_y_normalizes_U := by rw [conj_smul_map]; exact hP0U
+    q_prime := hq
+    q_not_dvd := hA }⟩
 
-/-- **A `p`-element of `Q` is trivial**, because `Q` is a `p'`-group.  This is all the Lemma C.3
-development ever needs from `Q`'s order — the Section 16 route used to derive it from the
-*stronger* "`Q` is elementary abelian of exponent `q`", but the book only assumes `Q` abelian
-and `p'`. -/
-theorem eq_one_of_mem_Q_of_pow_p_eq_one (data : FieldNormalizerData p q G)
-    {x : G} (hx : x ∈ data.Q) (hxp : x ^ p = 1) : x = 1 := by
+namespace Witness
+
+/-- An element of `Q` whose `p`-th power is `1` is trivial, because `|Q|` is prime to `p`. -/
+theorem eq_one_of_mem_Q_of_pow_p_eq_one (data : Witness p q G) {x : G} (hx : x ∈ data.Q)
+    (hxp : x ^ p = 1) : x = 1 := by
   have := data.Q_finite
   have hord : orderOf x ∣ p := orderOf_dvd_of_pow_eq_one hxp
   rcases (Nat.Prime.eq_one_or_self_of_dvd (Fact.out : p.Prime) _ hord) with h1 | hp
@@ -185,30 +119,41 @@ theorem eq_one_of_mem_Q_of_pow_p_eq_one (data : FieldNormalizerData p q G)
     rw [hsub, hp] at this
     exact this
 
-/-- `W₂^y` normalizes `U`: clause (B) read through `sigma_P0_eq_W2` and `sigma_U_eq_U`. -/
-theorem W2_conj_y_normalizes_U (data : FieldNormalizerData p q G) :
-    MulAut.conj data.y • data.W2 ≤ Subgroup.normalizer (data.U : Set G) := by
-  rw [← data.sigma_P0_eq_W2, ← data.sigma_U_eq_U]
-  exact data.primeLine_conj_normalizes_U
+/-- Elements of `Q` commute. -/
+theorem Q_mul_comm (data : Witness p q G) {x y : G} (hx : x ∈ data.Q) (hy : y ∈ data.Q) :
+    x * y = y * x := by
+  have := data.Q_commutative
+  exact setLike_mul_comm (s := data.Q) hx hy
 
-end FieldNormalizerData
+/-- The element `x = σ(inl 1)` of `σ(P₀)`. It generates `σ(P₀)`. -/
+noncomputable def s (data : Witness p q G) : G :=
+  data.sigma (primeLineGenerator p q)
 
-/-- Hypothesis (B) together with condition (A) *is* field-normalizer data: take the three named
-subgroups to be the images themselves.  This is what makes `FieldNormalizerData` a pure
-repackaging rather than a strengthening. -/
-noncomputable def HypothesisBAbstract.toFieldNormalizerData (hb : HypothesisBAbstract p q G)
-    (hq : q.Prime) (hp_odd : Odd p) (hA : conditionA p q) : FieldNormalizerData p q G where
-  toHypothesisBAbstract := hb
-  P := (normOneFrobeniusKernel p q).map hb.sigma
-  U := (normOneFrobeniusComplement p q).map hb.sigma
-  W2 := (primeLine p q).map hb.sigma
-  sigma_P_eq_P := rfl
-  sigma_U_eq_U := rfl
-  sigma_P0_eq_W2 := rfl
-  q_prime := hq
-  p_odd := hp_odd
-  cyclotomic_coprime := hA
+theorem s_mem_P0 (data : Witness p q G) : data.s ∈ data.P0 := by
+  rw [← data.sigma_P0_eq_P0]
+  exact ⟨primeLineGenerator p q, primeLineGenerator_mem p q, rfl⟩
 
-end Data
+theorem s_mem_P (data : Witness p q G) : data.s ∈ data.P := by
+  rw [← data.sigma_P_eq_P]
+  exact ⟨primeLineGenerator p q, ⟨Multiplicative.ofAdd 1, rfl⟩, rfl⟩
+
+/-- The element `x = σ(inl 1)` does not normalize `σ(U)`. Take `u ≠ 1` in `U`. If `x`
+normalized `σ(U)`, then `x · u · x⁻¹` would lie in `U`, which forces `u = 1`. -/
+theorem s_not_normalizes_U (data : Witness p q G) :
+    data.s ∉ Subgroup.normalizer (data.U : Set G) := by
+  intro hsN
+  obtain ⟨u, hu⟩ := exists_normOneUnit_ne_one p q data.q_prime.one_lt
+  have huU : data.sigma (SemidirectProduct.inr u) ∈ data.U := by
+    rw [← data.sigma_U_eq_U]
+    exact ⟨SemidirectProduct.inr u, ⟨u, rfl⟩, rfl⟩
+  have hconj : data.s * data.sigma (SemidirectProduct.inr u) * data.s⁻¹ ∈ data.U :=
+    (Subgroup.mem_normalizer_iff.mp hsN _).mp huU
+  rw [← data.sigma_U_eq_U] at hconj
+  obtain ⟨h, hhU, hh⟩ := hconj
+  have hh' : h = primeLineGenerator p q * SemidirectProduct.inr u * (primeLineGenerator p q)⁻¹ :=
+    data.sigma_injective (by rw [hh, s, map_mul, map_mul, map_inv])
+  exact hu (eq_one_of_conj_primeLineGenerator_mem p q u (hh' ▸ hhU))
+
+end Witness
 
 end PeterfalviProblem

@@ -54,7 +54,7 @@ variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 elements `a(A w)`, `a(B w)⁻¹` carries the `X`-twisted first-layer line to the `Y`-twisted one,
 coherently over every non-zero square height `w`.  For `A = B` this is conjugation; the general
 shape is what the elimination of the third layer between two Paley points actually produces. -/
-def SkewPair (data : FieldNormalizerData p q G) (e : ℕ) (A B X Y : GaloisField p q) : Prop :=
+def SkewPair (data : Witness p q G) (e : ℕ) (A B X Y : GaloisField p q) : Prop :=
   ∀ w : GaloisField p q, IsSquare w → w ≠ 0 →
     layerFieldHom data 0 (Multiplicative.ofAdd (A * w)) *
         layerFieldHom data 1 (Multiplicative.ofAdd (X * w ^ e)) *
@@ -62,7 +62,7 @@ def SkewPair (data : FieldNormalizerData p q G) (e : ℕ) (A B X Y : GaloisField
       = layerFieldHom data 1 (Multiplicative.ofAdd (Y * w ^ e))
 
 /-- The layers split additive arguments into products. -/
-private theorem layer_split (data : FieldNormalizerData p q G) (i : ℕ)
+private theorem layer_split (data : Witness p q G) (i : ℕ)
     {x y z : GaloisField p q} (h : x = y + z) :
     layerFieldHom data i (Multiplicative.ofAdd x)
       = layerFieldHom data i (Multiplicative.ofAdd y) *
@@ -72,7 +72,7 @@ private theorem layer_split (data : FieldNormalizerData p q G) (i : ℕ)
   exact map_mul _ _ _
 
 /-- The layers turn negated arguments into inverses. -/
-private theorem layer_neg (data : FieldNormalizerData p q G) (i : ℕ)
+private theorem layer_neg (data : Witness p q G) (i : ℕ)
     {x y : GaloisField p q} (h : x = -y) :
     layerFieldHom data i (Multiplicative.ofAdd x)
       = (layerFieldHom data i (Multiplicative.ofAdd y))⁻¹ := by
@@ -82,7 +82,7 @@ private theorem layer_neg (data : FieldNormalizerData p q G) (i : ℕ)
 
 namespace SkewPair
 
-variable {data : FieldNormalizerData p q G} {e : ℕ}
+variable {data : Witness p q G} {e : ℕ}
 
 /-- **Reversal.**  Inverting the relation swaps the two parameters and negates the weights. -/
 theorem rev {A B X Y : GaloisField p q} (h : SkewPair data e A B X Y) :
@@ -175,7 +175,7 @@ end SkewPair
 `(δ₀, δ₁; K(p), K(r))`,  `δ₀ = r₀ᵉ - p₀ᵉ`,  `δ₁ = r₁ᵉ - p₁ᵉ`,
 
 with no collision hypothesis (`δ₀ = δ₁` is precisely a collision). -/
-theorem skewPair_edge (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
+theorem skewPair_edge (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     (p₀ p₁ r₀ r₁ : normOneUnits p q)
     (hpp : normOneVal p₀ = normOneVal p₁ + 1) (hrr : normOneVal r₀ = normOneVal r₁ + 1) :
@@ -251,62 +251,13 @@ theorem skewPair_edge_weight_ne_zero {e : ℕ}
   rw [h1] at hpp
   simp at hpp
 
-/-- **`-1` is a non-square in `𝔽_{3^q}` for odd `q`** (`3^q ≡ 3 mod 4`). -/
-theorem not_isSquare_neg_one_galois (hp : p = 3) (hq0 : q ≠ 0) (hqodd : Odd q) :
-    ¬IsSquare (-1 : GaloisField p q) := by
-  subst hp
-  let : Fintype (GaloisField 3 q) := Fintype.ofFinite _
-  have : CharP (GaloisField 3 q) 3 := by
-    rw [← Algebra.charP_iff (ZMod 3) (GaloisField 3 q) 3]
-    exact ZMod.charP 3
-  have hchar2 : ringChar (GaloisField 3 q) ≠ 2 := by
-    rw [ringChar.eq (GaloisField 3 q) 3]
-    norm_num
-  have h4 : Fintype.card (GaloisField 3 q) % 4 = 3 := by
-    rw [show Fintype.card (GaloisField 3 q) = 3 ^ q by
-      rw [← Nat.card_eq_fintype_card]; exact GaloisField.card 3 q hq0]
-    have hq2 : q % 2 = 1 := Nat.odd_iff.mp hqodd
-    have hk : q = 2 * (q / 2) + 1 := by omega
-    rw [hk, pow_succ, pow_mul, Nat.mul_mod, Nat.pow_mod]
-    norm_num
-  exact Paley.not_isSquare_neg_one hchar2 h4
-
-/-- **The square dichotomy in `𝔽_{3^q}`** (`q` odd): every non-zero element is `±` a square. -/
-theorem isSquare_or_isSquare_neg_galois (hp : p = 3) (hq0 : q ≠ 0) (hqodd : Odd q)
-    {a : GaloisField p q} (ha : a ≠ 0) : IsSquare a ∨ IsSquare (-a) := by
-  subst hp
-  let : Fintype (GaloisField 3 q) := Fintype.ofFinite _
-  have : CharP (GaloisField 3 q) 3 := by
-    rw [← Algebra.charP_iff (ZMod 3) (GaloisField 3 q) 3]
-    exact ZMod.charP 3
-  have hchar2 : ringChar (GaloisField 3 q) ≠ 2 := by
-    rw [ringChar.eq (GaloisField 3 q) 3]
-    norm_num
-  have h4 : Fintype.card (GaloisField 3 q) % 4 = 3 := by
-    rw [show Fintype.card (GaloisField 3 q) = 3 ^ q by
-      rw [← Nat.card_eq_fintype_card]; exact GaloisField.card 3 q hq0]
-    have hq2 : q % 2 = 1 := Nat.odd_iff.mp hqodd
-    have hk : q = 2 * (q / 2) + 1 := by omega
-    rw [hk, pow_succ, pow_mul, Nat.mul_mod, Nat.pow_mod]
-    norm_num
-  exact Paley.isSquare_or_isSquare_neg hchar2 h4 ha
-
-/-- When `-1` is a non-square, `a` and `-a` are never both squares. -/
-theorem not_isSquare_of_isSquare_neg {F : Type*} [Field F]
-    (hneg1 : ¬IsSquare (-1 : F)) {a : F} (ha : a ≠ 0) (h : IsSquare (-a)) :
-    ¬IsSquare a := by
-  intro hsq
-  refine hneg1 ?_
-  rw [show (-1 : F) = -a * a⁻¹ by field_simp]
-  exact h.mul hsq.inv
-
 /-- **Loop ⟹ kill.**  A Frobenius-closed family of closed loops whose weight pair does not
 vanish refutes hypothesis (B).  If one weight vanishes the graph property kills the loop
 directly; otherwise the loop is a conjugation pair with non-zero seed — forwards when the loop
 parameter is a square, backwards when it is not (the square class is Frobenius-stable, so the
 orientation is uniform in the family) — and the chain-reversal engine
 `false_of_conjPair_frobenius_family` applies. -/
-theorem false_of_skewPair_self_frobenius_family (data : FieldNormalizerData p q G) (hp : p = 3)
+theorem false_of_skewPair_self_frobenius_family (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
@@ -382,16 +333,16 @@ pair.  Edges are Frobenius-closed because the Paley set is, and reversal, compos
 square rescaling preserve closedness (freshman's dream), so each concrete loop of the calculus
 is assembled once at family level; a closed family with non-vanishing weight is then fatal by
 `false_of_skewPair_self_frobenius_family`. -/
-def FrobFam (data : FieldNormalizerData p q G) (e : ℕ) (A B X Y : GaloisField p q) : Prop :=
+def FrobFam (data : Witness p q G) (e : ℕ) (A B X Y : GaloisField p q) : Prop :=
   ∀ j : ℕ, SkewPair data e (A ^ p ^ j) (B ^ p ^ j) (X ^ p ^ j) (Y ^ p ^ j)
 
 namespace FrobFam
 
-variable {data : FieldNormalizerData p q G} {e : ℕ}
+variable {data : Witness p q G} {e : ℕ}
 
 /-- **The skew edge is Frobenius-closed**: twisting the two Paley pairs twists the edge
 data componentwise. -/
-theorem edge (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
+theorem edge (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {p₀ p₁ r₀ r₁ : normOneUnits p q}
     (hpp : normOneVal p₀ = normOneVal p₁ + 1) (hrr : normOneVal r₀ = normOneVal r₁ + 1) :
@@ -436,7 +387,7 @@ theorem rescale {A B X Y : GaloisField p q} (h : FrobFam data e A B X Y)
 
 /-- **The family kill**: a closed Frobenius-closed family with non-vanishing weight refutes
 hypothesis (B). -/
-theorem false_of_self (data : FieldNormalizerData p q G) (hp : p = 3)
+theorem false_of_self (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
@@ -457,7 +408,7 @@ Paley points this kills the singleton-`{-1}` population (step 4 of the case tree
 `K(p) + K(r)` does not vanish refutes hypothesis (B): the edge composes with its own swap
 into a closed loop of weight `(K(p) + K(r), K(r) + K(p))`, uniformly in the Frobenius
 twist. -/
-theorem false_of_antipodal_edge (data : FieldNormalizerData p q G) (hp : p = 3)
+theorem false_of_antipodal_edge (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
@@ -484,7 +435,7 @@ theorem false_of_antipodal_edge (data : FieldNormalizerData p q G) (hp : p = 3)
 weight sum vanishes: `K(p) = -K(r)`.  Step 4 of the case tree: in the singleton-`{-1}`
 population this holds for every ordered pair, and three distinct Paley points then force
 `K ≡ 0`, a contradiction. -/
-theorem weight_sum_eq_zero_of_antipodal_edge (data : FieldNormalizerData p q G) (hp : p = 3)
+theorem weight_sum_eq_zero_of_antipodal_edge (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
@@ -508,7 +459,7 @@ lemmas make every loop of the endgame assemble mechanically. -/
 
 /-- **The forward leg.**  When `h/δ₀` is a square, the edge rescales onto entry height `h`,
 with weights `(K(p)(h/δ₀)ᵉ, K(r)(h/δ₀)ᵉ)`. -/
-theorem FrobFam.leg_fwd (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
+theorem FrobFam.leg_fwd (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {p₀ p₁ r₀ r₁ : normOneUnits p q}
     (hpp : normOneVal p₀ = normOneVal p₁ + 1) (hrr : normOneVal r₀ = normOneVal r₁ + 1)
@@ -536,7 +487,7 @@ theorem FrobFam.leg_fwd (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q 
 /-- **The swap leg.**  When `h/δ₀` is a non-square, the swap edge `(r, p)` rescales onto entry
 height `h` instead (by `-h/δ₀`, a square since `-1` is a non-square), running along the same
 ratio with weights `(K(r)(-h/δ₀)ᵉ, K(p)(-h/δ₀)ᵉ)`. -/
-theorem FrobFam.leg_swap (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
+theorem FrobFam.leg_swap (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {p₀ p₁ r₀ r₁ : normOneUnits p q}
     (hpp : normOneVal p₀ = normOneVal p₁ + 1) (hrr : normOneVal r₀ = normOneVal r₁ + 1)
@@ -575,7 +526,7 @@ noncomputable def legWeight (Kp Kr : GaloisField p q) : Bool → GaloisField p q
 class of `h/δ₀`: the forward edge when it is a square, the swap edge otherwise.  Both run
 `h → h·(δ₁/δ₀)` with weights `(legWeight K(p) K(r) b · (h/δ₀)ᵉ, legWeight K(r) K(p) b ·
 (h/δ₀)ᵉ)` — a single uniform shape for the loop assembly of the endgame. -/
-theorem FrobFam.leg_resolved (data : FieldNormalizerData p q G) (hp : p = 3) (hq : q ≠ 0)
+theorem FrobFam.leg_resolved (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     {e : ℕ} (he : Odd e)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {p₀ p₁ r₀ r₁ : normOneUnits p q}
@@ -623,7 +574,7 @@ composite `h₁ ∘ h₂ ∘ rev h₃ ∘ rev h₄`, with weight `(X₁+X₂-X�
 `A → B₁ → B₂ ← B₃ ← A` (legs 3 and 4 used backwards) compose into a closed loop; if either
 component of the weight `(X₁+X₂-X₃-X₄, Y₁+Y₂-Y₃-Y₄)` does not vanish, hypothesis (B) is
 refuted. -/
-theorem false_of_four_loop (data : FieldNormalizerData p q G) (hp : p = 3)
+theorem false_of_four_loop (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
@@ -641,7 +592,7 @@ theorem false_of_four_loop (data : FieldNormalizerData p q G) (hp : p = 3)
 /-- **The exchange relation, raw form.**  Conspiracy on a four-leg loop: both components of
 the weight vanish.  Instantiated with the commutator loop's legs this is relation (EX) of the
 endgame (step 5 of the case tree). -/
-theorem weights_eq_zero_of_four_loop (data : FieldNormalizerData p q G) (hp : p = 3)
+theorem weights_eq_zero_of_four_loop (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
