@@ -28,21 +28,12 @@ namespace PeterfalviProblem
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-- The `σ(U)`-orbit of the generator `x = σ(1)` of `σ(P₀)`.  Under the identification of `σ(P)`
-with `𝔽_{3^q}` this is the set of squares — the set `S` of the partial resolution. -/
+/-- The conjugates `v⁻¹ x v` of `x = σ(inl 1)` by the elements `v ∈ σ(U)`. -/
 def orbitS (data : Witness p q G) : Set G :=
   {s | ∃ v ∈ data.U, s = v⁻¹ * data.s * v}
 
-/-- **The orbit `S` in field terms.**  The `σ(U)`-orbit of `x = σ(1)` is precisely the `σ`-image
-of the *norm-one set* of `𝔽_{p^q}`, embedded additively:
-
-`orbitS data = { σ(inl u) : u a norm-one unit }`.
-
-This is the translation promised by `AppC.inr_inv_mul_primeLineGenerator_mul_inr`: conjugation by
-`σ(inr u)` multiplies the base point by `u⁻¹`, and inversion permutes the norm-one units.  For
-`p = 3` the norm-one set is the set of squares, so the spanning hypothesis of
-`false_of_centralizing_of_spanning` becomes exactly Lemma B of
-`notes/bg/appC_problem1_partial_resolution.md`. -/
+/-- The conjugates of `x` are the elements `σ(inl u)` with `u` a norm-one unit. Conjugation by
+`σ(inr u)` sends `x` to `σ(inl u⁻¹)` (`inr_inv_mul_primeLineGenerator_mul_inr`). -/
 theorem mem_orbitS_iff (data : Witness p q G) {s : G} :
     s ∈ orbitS data ↔ ∃ u : normOneUnits p q,
       s = data.sigma (SemidirectProduct.inl (Multiplicative.ofAdd
@@ -75,15 +66,13 @@ theorem conj_s_mem_P (data : Witness p q G) {v : G} (hv : v ∈ data.U) :
     inr_inv_mul_primeLineGenerator_mul_inr]
   exact ⟨_, ⟨_, rfl⟩, rfl⟩
 
-/-- **Lemma B, transported into `G`.**  For `p = 3` the spanning hypothesis of
-`false_of_centralizing_of_spanning` *holds*: the elements `s` of the `σ(U)`-orbit of `x` with
-`s · x` again in the orbit generate `σ(P)`.
+/-- For `p = 3`, the conjugates `s` of `x` such that `s x` is again a conjugate of `x` generate
+`σ(P)`.
 
-Through `mem_orbitS_iff` and `mem_normOneUnits_iff_isSquare` the generating set is the image of
-the Paley set `T = {a : a and a + 1 are nonzero squares}` of `𝔽_{3^q}`, which generates the
-additive group by `PeterfalviProblem.Paley.addClosure_paleySet_eq_top`.  Condition (A) supplies the two
-numerical inputs of that lemma: `q ∤ p - 1 = 2` makes `q` odd, hence `|F| = 3^q ≡ 3 (mod 4)` and
-`|F| ≥ 27`. -/
+By `mem_orbitS_iff` and `mem_normOneUnits_iff_isSquare`, these elements are the images
+`σ(inl a)` of the points `a` of the Paley set `T = {a : a and a + 1 are nonzero squares}` of
+`𝔽_{3^q}`. The set `T` generates the additive group (`Paley.addClosure_paleySet_eq_top`). That
+lemma needs `|F| ≡ 3 (mod 4)` and `|F| > 9`, which hold because `q` is odd. -/
 theorem le_closure_orbitS (data : Witness p q G) (hp : p = 3) :
     data.P ≤ Subgroup.closure {s | s ∈ orbitS data ∧ s * data.s ∈ orbitS data} := by
   classical
@@ -151,13 +140,14 @@ theorem le_closure_orbitS (data : Witness p q G) (hp : p = 3) :
   have hmem : Multiplicative.toAdd a ∈ A := hAtop ▸ AddSubgroup.mem_top _
   exact hmem
 
-/-- **Theorem 1, Frobenius-power case.**  If `g` acts on `σ(U)` by an exponent agreeing with a
-Frobenius power `u ↦ u^{3ʲ}` on the norm-one units, hypothesis (B) fails.  The transported
-Frobenius `s ↦ s^{3ʲ}` is additive on `σ(P)`, so the layered relation family feeds the twisted
-engine `commute_conj_of_le_closure_twisted`; the Paley spanning transports along the Frobenius
-bijection; and the resulting commutation `[x, x^g] = 1` is fatal (`not_commute_conj`).  This is
-the `e ∈ ⟨3⟩` half of Theorem 1 of `notes/bg/appC_problem1_partial_resolution.md` —
-`false_of_centralizing` is the specialisation `j = 0`. -/
+/-- **The Frobenius case.** Let `p = 3`, and suppose that `g w = wᵉ g` for all `w ∈ σ(U)`, where
+`uᵉ = u^{3ʲ}` for every norm-one `u`. Then we reach a contradiction.
+
+The map `σ(inl s) ↦ σ(inl s^{3ʲ})` is multiplicative on `σ(P)`, because `s ↦ s^{3ʲ}` is additive
+in characteristic three. So the relation family satisfies the hypothesis of
+`commute_conj_of_le_closure_twisted`. The generating set of `le_closure_orbitS`, moved by this
+bijection, still generates `σ(P)`. Hence `x` commutes with `g⁻¹ x g`, which contradicts
+`not_commute_conj`. -/
 theorem false_of_frobenius_exponent (data : Witness p q G) (hp : p = 3)
     {e j : ℕ} (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     (hfrob : ∀ u : normOneUnits p q, u ^ e = u ^ 3 ^ j) : False := by
@@ -195,7 +185,7 @@ theorem false_of_frobenius_exponent (data : Witness p q G) (hp : p = 3)
       congr 1
       rw [toAdd_mul, add_pow_char_pow]
     rw [← map_mul, hσf_apply, harg, map_mul, ← hσf_apply, ← hσf_apply]
-  -- orbit elements in field coordinates, and the twist as the `e`-power on the orbit
+  -- the conjugates of `x` in field coordinates; `σf` acts on them as the `e`-th power
   have hSP : orbitS data ⊆ (data.P : Set G) := by
     rintro s ⟨v, hv, rfl⟩
     exact conj_s_mem_P data hv
@@ -300,7 +290,7 @@ theorem false_of_frobenius_exponent (data : Witness p q G) (hp : p = 3)
     · intro x hxc hx
       rw [hσinv x (hclP hxc)]
       exact Subgroup.inv_mem _ hx
-  -- feed the engine and close by the fixed-point contradiction
+  -- apply `commute_conj_of_le_closure_twisted`; `not_commute_conj` gives the contradiction
   have ht : data.s ∈ orbitS data := ⟨1, data.U.one_mem, by group⟩
   have hcomm := commute_conj_of_le_closure_twisted (P := data.P) (g := conjGen data)
     (fun a ha b hb => P_mul_comm data ha hb) σf hσmul hσP hSP hrel ht hspan

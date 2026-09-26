@@ -7,37 +7,38 @@ import PeterfalviProblem.Algebra.FrobeniusCyclicModule
 import PeterfalviProblem.Proof.CommutingSubgroup
 
 /-!
-# BG Appendix C, Problem 1: the pair-composition calculus
+# Conjugation pairs and collisions
 
-The trace-free refutations of `AppC_Problem1SameCoset` treat a collision whose two normalised
-values coincide (`S = S'`).  This file handles the *general* collision by working with the full
-conjugation relation (3′)
+Let `data` be a witness with `p = 3` and `q ≠ 3` odd, and let `e` be an odd exponent as in
+`exists_odd_cube_exponent`.
 
-`a(v) · b(S v^e) · a(v)⁻¹ = b(S' v^e)`   (for every non-zero square `v`),
+A *conjugation pair* `ConjPair data e s s'` is the relation
 
-packaged as `ConjPair S S'`.  These pairs form the graph of an injective additive map (`add`,
-`left_eq_zero`), and — the central discovery — they **compose**: from `ConjPair s s'` and
-`ConjPair t t'` one manufactures a new pair whose ratio is the product `(s'/s)·(t'/t)` (or its
-inverse), by conjugating the first relation by a first-layer element chosen so that its
-`t`-relation consumes the output line of the `s`-relation.  The composition is *total*: the
-apparent degenerate case `1 + η = 0` would force `-1` to be a square.  A flipped variant
-(`composeFlip_key`) uses the second pair backwards and realises the ratio *quotient*; it
-degenerates only at `t' = ±s'`.
+`a(v) · b(s vᵉ) · a(v)⁻¹ = b(s' vᵉ)` for every nonzero square `v`.
 
-Any pair with ratio `1` — a non-zero fixed point — lands in `commSubgroup` and is fatal by the
-fixed-point principle `false_of_mem_commSubgroup_ne_zero`.  Consequences:
+Pairs can be added, and a pair `(0, s')` has `s' = 0`. In characteristic three
+`a(v)² = a(-v) = a(v)⁻¹`, so pairs `(s, s')` and `(s', s'')` give a pair `(s'', s)`
+(`ConjPair.chain`).
 
-* `false_of_collisionPair_neg` — a collision with `S' = -S` refutes hypothesis (B): conjugating
-  twice gives `a(v)² = a(-v)` fixing `b(S v^e)`, so `S ∈ commSubgroup`.  No trace hypothesis.
-* `false_of_collisionPair_ratio_eq` — **two** collisions with equal ratios `S₁'/S₁ = S₂'/S₂` and
-  `S₂' ≠ ±S₁'` refute hypothesis (B): the flipped composition realises ratio `1`.
-* `false_of_collisionPair_frobCombo` — a Frobenius combination `∑ kⱼ S^{3^j} = ∑ kⱼ S'^{3^j} ≠ 0`
-  refutes hypothesis (B): pairs are closed under addition and under the Frobenius twist *of the
-  underlying collision* (`CollisionPair.frobenius`), and the combination is a fixed point.
+Suppose that `(S^{3ʲ}, S'^{3ʲ})` is a pair for every `j`, and `S ≠ 0`. Then `(c · S, c · S')` is a
+pair for every polynomial `c ∈ 𝔽₃[X]`, where `X` acts as the Frobenius map. The Frobenius module
+is cyclic, so `S' = a₀ · S` for some polynomial `a₀`. The chain rule then gives `a₀³ · S = S`, and
+`a₀³ - 1 = (a₀ - 1)³` in characteristic three. For `q ≠ 3` the polynomial `X^q - 1` has no
+repeated factors, so `a₀ · S = S`, that is, `S' = S`. But a pair `(S, S)` with `S ≠ 0` puts `S`
+into `commSubgroup`, which contradicts the fixed-point principle
+(`false_of_conjPair_frobenius_family`).
 
-Mathematical record: `notes/bg/appC_problem1_pair_composition.md` (issue 0180).  This is the
-"closure theorem depending on the projective ratio `S'/S`" that the fourth ChatGPT consultation
-left open (`notes/bg/appC_problem1_chatgpt_answer_b1.md` §III.2).
+A *collision* is given by norm-one units `p₀ = p₁ + 1` and `r₀ = r₁ + 1` with `p₀ ≠ r₀` and
+`p₀ᵉ - p₁ᵉ = r₀ᵉ - r₁ᵉ` (`CollisionPair`). By `layerFieldHom_one_conj`, a collision gives a
+conjugation pair, and its images under the Frobenius map give a whole family. So no collision
+exists (`false_of_collisionPair`).
+
+## Main results
+
+* `ConjPair.chain`: pairs `(s, s')` and `(s', s'')` give the pair `(s'', s)`.
+* `false_of_conjPair_frobenius_family`: a Frobenius-closed family of pairs with `S ≠ 0` gives a
+  contradiction.
+* `false_of_collisionPair`: a collision gives a contradiction.
 -/
 
 namespace PeterfalviProblem
@@ -46,15 +47,13 @@ section PairComposition
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-! ### The collision data, keeping both endpoints
+/-! ### Collisions -/
 
-`collisionSet` records only the `S`-value that gets conjugated; the trace obstruction needs the
-*pair* `(S, S')` of relation (4), because the Frobenius moves both. -/
-
-/-- **A collision of the map `p ↦ p^E - (p-1)^E` on the Paley set, with square difference.**
-`p₀ = p₁ + 1` and `r₀ = r₁ + 1` are the two Paley pairs, `d₀` is the (norm-one, i.e. square)
-difference `δ = r₀^e - p₀^e`, and `S`, `S'` are the two normalised third-layer values.  Relation
-(4) reads `x · b(S) · x⁻¹ = b(S')` (`conj_layerFieldHom_one_eq`). -/
+/-- **A collision.** There are norm-one units `p₀ = p₁ + 1` and `r₀ = r₁ + 1` with
+`p₀ᵉ - p₁ᵉ = r₀ᵉ - r₁ᵉ`, such that `δ = r₀ᵉ - p₀ᵉ` is also a norm-one unit (`d₀`). The values are
+`S = K(p) · (δ⁻¹)^{e⁴}` and `S' = K(r) · (δ⁻¹)^{e⁴}`, where `K(p) = p₁^{e²} - p₀^{e²}` and
+`K(r) = r₁^{e²} - r₀^{e²}`. When `z^{e³} = z` for all `z`, the factor `(δ⁻¹)^{e⁴}` is
+`δ^{-e}`. -/
 def CollisionPair (p q e : ℕ) [Fact p.Prime] (S S' : GaloisField p q) : Prop :=
   ∃ p₀ p₁ r₀ r₁ d₀ : normOneUnits p q,
     normOneVal p₀ = normOneVal p₁ + 1 ∧ normOneVal r₀ = normOneVal r₁ + 1 ∧
@@ -65,20 +64,10 @@ def CollisionPair (p q e : ℕ) [Fact p.Prime] (S S' : GaloisField p q) : Prop :
     S' = (normOneVal r₁ ^ (e * e) - normOneVal r₀ ^ (e * e)) *
         normOneVal (d₀⁻¹ ^ (e * e)) ^ (e * e)
 
-/-- **The square-difference requirement in `CollisionPair` costs nothing.**
-
-`CollisionPair` asks for the difference `δ = r₀^e - p₀^e` of an *ordered* pair to be norm-one,
-i.e. (for `p = 3`) a square.  Since `q` is odd, `-1` is a non-square in `𝔽_{3^q}`, so `δ` and `-δ`
-are never both squares and never both non-squares: **exactly one of the two orderings of a
-collision has square difference**.  Swapping the two Paley points therefore always produces a
-`CollisionPair`, and the only genuine hypothesis left is that the collision be nondegenerate,
-`δ ≠ 0` — which for a collision of distinct Paley points is automatic.
-
-Consequences.  (i) Hypothesis (B1) of `notes/bg/appC_problem1_partial_resolution.md` — "some
-collision with square difference exists" — collapses to the plain statement "some collision
-exists".  (ii) The measured "only about half of the collisions are usable" (the enumeration for
-`q = 7, 13`) is an artefact of a fixed ordering convention, not a real filter: *every* collision
-is usable, so a certificate search may keep both orderings and doubles its hit rate. -/
+/-- The condition that `δ` be a square costs nothing. Let `p₀ = p₁ + 1` and `r₀ = r₁ + 1` be
+norm-one units with `p₀ᵉ - p₁ᵉ = r₀ᵉ - r₁ᵉ` and `r₀ᵉ - p₀ᵉ ≠ 0`. Since `-1` is not a square,
+exactly one of `r₀ᵉ - p₀ᵉ` and `p₀ᵉ - r₀ᵉ` is a square. So one of the two orders of the points
+gives a `CollisionPair`. -/
 theorem exists_collisionPair_of_sub_ne_zero (hp : p = 3) (hq : q ≠ 0) (hqodd : Odd q) {e : ℕ}
     (p₀ p₁ r₀ r₁ : normOneUnits p q)
     (hpp : normOneVal p₀ = normOneVal p₁ + 1) (hrr : normOneVal r₀ = normOneVal r₁ + 1)
@@ -86,28 +75,12 @@ theorem exists_collisionPair_of_sub_ne_zero (hp : p = 3) (hq : q ≠ 0) (hqodd :
     (hd : normOneVal r₀ ^ e - normOneVal p₀ ^ e ≠ 0) :
     ∃ S S', CollisionPair p q e S S' := by
   subst hp
-  let : Fintype (GaloisField 3 q) := Fintype.ofFinite _
-  have : CharP (GaloisField 3 q) 3 := by
-    rw [← Algebra.charP_iff (ZMod 3) (GaloisField 3 q) 3]
-    exact ZMod.charP 3
-  have hcard : Fintype.card (GaloisField 3 q) = 3 ^ q := by
-    rw [← Nat.card_eq_fintype_card]
-    exact GaloisField.card 3 q hq
-  have hchar2 : ringChar (GaloisField 3 q) ≠ 2 := by
-    rw [ringChar.eq (GaloisField 3 q) 3]
-    norm_num
-  have h4 : Fintype.card (GaloisField 3 q) % 4 = 3 := by
-    rw [hcard]
-    have hq2 : q % 2 = 1 := Nat.odd_iff.mp hqodd
-    have hk : q = 2 * (q / 2) + 1 := by omega
-    rw [hk, pow_succ, pow_mul, Nat.mul_mod, Nat.pow_mod]
-    norm_num
-  rcases Paley.isSquare_or_isSquare_neg hchar2 h4 hd with hsq | hnsq
-  · -- the given ordering already has square difference
+  rcases isSquare_or_isSquare_neg_galois rfl hq hqodd hd with hsq | hnsq
+  · -- the given order already has a square difference
     refine ⟨_, _, p₀, p₁, r₀, r₁,
       ⟨Units.mk0 _ hd, (mem_normOneUnits_iff_isSquare rfl hq _).mpr hsq⟩,
       hpp, hrr, hcoll, rfl, rfl, rfl⟩
-  · -- swap the two Paley points; the difference changes sign, hence square class
+  · -- swap the two points; the difference changes sign
     have hd' : normOneVal p₀ ^ e - normOneVal r₀ ^ e ≠ 0 := by
       intro h
       exact hd (by linear_combination -h)
@@ -120,10 +93,9 @@ theorem exists_collisionPair_of_sub_ne_zero (hp : p = 3) (hq : q ≠ 0) (hqodd :
       ⟨Units.mk0 _ hd', (mem_normOneUnits_iff_isSquare rfl hq _).mpr hsq'⟩,
       hrr, hpp, hcoll.symm, rfl, rfl, rfl⟩
 
-/-- **The collision data is Frobenius-equivariant.**  In characteristic `p` the map `a ↦ a^p` is a
-ring endomorphism fixing `1`, so it carries a Paley pair to a Paley pair, a collision to a
-collision and the difference `δ` to `δ^p`; the two normalised values are raised to the `p`-th
-power. -/
+/-- Collisions are stable under the Frobenius map. In characteristic `p`, the map `a ↦ a^p` is a
+ring homomorphism. So it sends a collision to a collision, and it raises `S` and `S'` to the
+`p`-th power. -/
 theorem CollisionPair.frobenius {e : ℕ} {S S' : GaloisField p q}
     (h : CollisionPair p q e S S') : CollisionPair p q e (S ^ p) (S' ^ p) := by
   obtain ⟨p₀, p₁, r₀, r₁, d₀, hpp, hrr, hcoll, hd, rfl, rfl⟩ := h
@@ -145,7 +117,7 @@ theorem CollisionPair.frobenius {e : ℕ} {S S' : GaloisField p q}
   · rw [hd0]
     simp only [normOneVal_pow, hswap, ← sub_pow_char, ← mul_pow]
 
-/-- Iterating `CollisionPair.frobenius`. -/
+/-- The same for `a ↦ a^{pʲ}`. -/
 theorem CollisionPair.frobenius_iterate {e : ℕ} {S S' : GaloisField p q}
     (h : CollisionPair p q e S S') (j : ℕ) :
     CollisionPair p q e (S ^ p ^ j) (S' ^ p ^ j) := by
@@ -155,9 +127,8 @@ theorem CollisionPair.frobenius_iterate {e : ℕ} {S S' : GaloisField p q}
       have hstep := ih.frobenius
       rwa [← pow_mul, ← pow_mul, ← pow_succ] at hstep
 
-/-- **A conjugation pair.**  `ConjPair data e s s'` says that conjugation by the zeroth-layer
-element `a(v)` carries the `s`-twisted second-layer line to the `s'`-twisted one, coherently over
-every non-zero square argument `v`.  Relation (3′) of a collision is exactly this shape. -/
+/-- **A conjugation pair**: `a(v) · b(s vᵉ) · a(v)⁻¹ = b(s' vᵉ)` for every nonzero square
+`v`. -/
 def ConjPair (data : Witness p q G) (e : ℕ) (s s' : GaloisField p q) : Prop :=
   ∀ v : GaloisField p q, IsSquare v → v ≠ 0 →
     layerFieldHom data 0 (Multiplicative.ofAdd v) *
@@ -165,7 +136,7 @@ def ConjPair (data : Witness p q G) (e : ℕ) (s s' : GaloisField p q) : Prop :=
         (layerFieldHom data 0 (Multiplicative.ofAdd v))⁻¹
       = layerFieldHom data 1 (Multiplicative.ofAdd (s' * v ^ e))
 
-/-- Conjugation distributes over a product. -/
+/-- Conjugation distributes over products. -/
 private theorem conj_mul {H : Type*} [Group H] {x b₁ b₂ c₁ c₂ : H}
     (h₁ : x * b₁ * x⁻¹ = c₁) (h₂ : x * b₂ * x⁻¹ = c₂) : x * (b₁ * b₂) * x⁻¹ = c₁ * c₂ := by
   rw [← h₁, ← h₂]; group
@@ -179,7 +150,7 @@ namespace ConjPair
 
 variable {data : Witness p q G} {e : ℕ}
 
-/-- The layers split additive arguments into products. -/
+/-- Each layer turns sums into products. -/
 private theorem layer_split (data : Witness p q G) (i : ℕ)
     {x y z : GaloisField p q} (h : x = y + z) :
     layerFieldHom data i (Multiplicative.ofAdd x)
@@ -189,7 +160,7 @@ private theorem layer_split (data : Witness p q G) (i : ℕ)
   rw [ofAdd_add]
   exact map_mul _ _ _
 
-/-- The layers turn negated arguments into inverses. -/
+/-- Each layer turns negation into inversion. -/
 private theorem layer_neg (data : Witness p q G) (i : ℕ)
     {x y : GaloisField p q} (h : x = -y) :
     layerFieldHom data i (Multiplicative.ofAdd x)
@@ -198,7 +169,7 @@ private theorem layer_neg (data : Witness p q G) (i : ℕ)
   rw [ofAdd_neg]
   exact map_inv _ _
 
-/-- Pairs add componentwise: the second layer is abelian and conjugation is a homomorphism. -/
+/-- Pairs can be added, because the layer `b` and conjugation are homomorphisms. -/
 theorem add {s₁ s₁' s₂ s₂' : GaloisField p q} (h₁ : ConjPair data e s₁ s₁')
     (h₂ : ConjPair data e s₂ s₂') : ConjPair data e (s₁ + s₂) (s₁' + s₂') := by
   intro v hv hv0
@@ -206,7 +177,7 @@ theorem add {s₁ s₁' s₂ s₂' : GaloisField p q} (h₁ : ConjPair data e s�
     layer_split data 1 (show (s₁' + s₂') * v ^ e = s₁' * v ^ e + s₂' * v ^ e by ring)]
   exact conj_mul (h₁ v hv hv0) (h₂ v hv hv0)
 
-/-- The trivial pair. -/
+/-- `(0, 0)` is a pair. -/
 theorem zero (data : Witness p q G) (e : ℕ) : ConjPair data e 0 0 := by
   intro v hv hv0
   have h0 : layerFieldHom data 1 (Multiplicative.ofAdd ((0 : GaloisField p q) * v ^ e)) = 1 := by
@@ -218,7 +189,7 @@ theorem zero (data : Witness p q G) (e : ℕ) : ConjPair data e 0 0 := by
   rw [h0, mul_one]
   exact mul_inv_cancel _
 
-/-- Pairs negate componentwise. -/
+/-- Pairs can be negated. -/
 theorem neg {s s' : GaloisField p q} (h : ConjPair data e s s') :
     ConjPair data e (-s) (-s') := by
   intro v hv hv0
@@ -226,7 +197,7 @@ theorem neg {s s' : GaloisField p q} (h : ConjPair data e s s') :
     layer_neg data 1 (show -s' * v ^ e = -(s' * v ^ e) by ring)]
   exact conj_inv (h v hv hv0)
 
-/-- Pairs scale by natural numbers. -/
+/-- Pairs can be multiplied by natural numbers. -/
 theorem nsmul {s s' : GaloisField p q} (h : ConjPair data e s s') (k : ℕ) :
     ConjPair data e (k • s) (k • s') := by
   induction k with
@@ -235,7 +206,7 @@ theorem nsmul {s s' : GaloisField p q} (h : ConjPair data e s s') (k : ℕ) :
       rw [succ_nsmul, succ_nsmul]
       exact ih.add h
 
-/-- Pairs sum over finite index sets. -/
+/-- Finite sums of pairs are pairs. -/
 theorem sum {ι : Type*} (f g : ι → GaloisField p q) (T : Finset ι)
     (h : ∀ i ∈ T, ConjPair data e (f i) (g i)) :
     ConjPair data e (∑ i ∈ T, f i) (∑ i ∈ T, g i) := by
@@ -247,9 +218,8 @@ theorem sum {ι : Type*} (f g : ι → GaloisField p q) (T : Finset ι)
       exact (h a (Finset.mem_insert_self a T)).add
         (ih fun i hi => h i (Finset.mem_insert_of_mem hi))
 
-/-- **The graph property, other direction.**  A pair with vanishing first component has vanishing
-second component: `a(v) · 1 · a(v)⁻¹ = 1`.  A violation — the kill condition "K2" of the closure
-computation — therefore refutes hypothesis (B) outright. -/
+/-- A pair `(0, s')` has `s' = 0`, because `b(s') = a(1) · 1 · a(1)⁻¹ = 1` and the layer `b` is
+injective. -/
 theorem right_eq_zero {s' : GaloisField p q} (h : ConjPair data e 0 s') : s' = 0 := by
   have h1 := h 1 ⟨1, (mul_one 1).symm⟩ one_ne_zero
   have h0 : layerFieldHom data 1 (Multiplicative.ofAdd ((0 : GaloisField p q) * 1 ^ e)) = 1 := by
@@ -270,9 +240,9 @@ theorem right_eq_zero {s' : GaloisField p q} (h : ConjPair data e 0 s') : s' = 0
 
 end ConjPair
 
-/-- **Relation (3′): a collision is a conjugation pair.**  The normalisation `v := δ z^e` of
-relation (3) (`layerFieldHom_one_conj`); as `z` sweeps the norm-one units so does `v`, because the
-oriented difference `δ` is a square and `z ↦ z^e` is invertible on squares. -/
+/-- **A collision gives a conjugation pair** `(S, S')`. Substitute `v = δ zᵉ` in
+`layerFieldHom_one_conj`. As `z` runs over the norm-one units, so does `v`, because `δ` is a
+square and `z ↦ zᵉ` is a bijection. -/
 theorem ConjPair.of_collisionPair (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     {e : ℕ} (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {S S' : GaloisField p q} (hpair : CollisionPair p q e S S') : ConjPair data e S S' := by
@@ -332,9 +302,9 @@ theorem ConjPair.of_collisionPair (data : Witness p q G) (hp : p = 3) (hq : q �
   rw [ConjPair.layer_neg data 0 (rfl : -w = -w)] at hrel
   exact hrel.symm
 
-/-- **A non-zero fixed point of the pair relation is fatal.**  `ConjPair m m` says that `a(v)`
-commutes with `b(m v^e)` on every square argument, so `m` is a non-zero admissible twist and the
-fixed-point principle applies. -/
+/-- A pair `(m, m)` with `m ≠ 0` gives a contradiction. Such a pair says that `a(v)` commutes
+with `b(m vᵉ)` for every nonzero square `v`. So `m ∈ commSubgroup`, and the fixed-point principle
+`false_of_mem_commSubgroup_ne_zero` applies. -/
 theorem false_of_conjPair_self (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -349,8 +319,8 @@ theorem false_of_conjPair_self (data : Witness p q G) (hp : p = 3)
     exact (commute_iff_eq _ _).mpr (mul_inv_eq_iff_eq_mul.mp h1)
   exact false_of_mem_commSubgroup_ne_zero data hp hqprime hqodd he hcube hexp hmem hm0
 
-/-- The first normalised value of a collision is non-zero: `z ↦ z^{e²}` is injective and the two
-Paley coordinates differ by `1`. -/
+/-- The value `S` of a collision is nonzero, because `z ↦ z^{e²}` is injective and
+`p₀ ≠ p₁`. -/
 theorem CollisionPair.left_ne_zero {e : ℕ}
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     {S S' : GaloisField p q} (hpair : CollisionPair p q e S S') : S ≠ 0 := by
@@ -369,21 +339,14 @@ theorem CollisionPair.left_ne_zero {e : ℕ}
   rw [hpp] at hinj
   exact one_ne_zero (by linear_combination -hinj)
 
-/-! ### Theorem N1: a collision with `S' = -S` is fatal
-
-Conjugating the pair relation twice by the same `a(v)` and using `a(v)² = a(-v)` (characteristic
-three) shows that `a(v)⁻¹` fixes `b(S v^e)`, i.e. `S` is an admissible twist. -/
-
 /-! ### Chain reversal
 
-Two pairs sharing a middle value close into a *reversed* pair.  Unlike the composition calculus
-below, no sign analysis and no `e`-th powers appear: both relations are instantiated at the *same*
-argument `v`, and `a(v)² = a(2v) = a(-v) = a(v)⁻¹` (characteristic three) turns the double
-conjugation into a conjugation by `a(v)⁻¹`. -/
+In characteristic three, `a(v)² = a(2v) = a(-v) = a(v)⁻¹`. So two conjugations by `a(v)` are one
+conjugation by `a(v)⁻¹`. -/
 
-/-- **Chain reversal.**  `ConjPair s s'` and `ConjPair s' s''` imply `ConjPair s'' s`: conjugating
-the first relation by `a(v)` and consuming it with the second gives
-`a(v)² · b(s v^e) · a(v)⁻² = b(s'' v^e)`, and `a(v)² = a(v)⁻¹` in characteristic three. -/
+/-- **Chain reversal.** Pairs `(s, s')` and `(s', s'')` give the pair `(s'', s)`. Conjugating the
+first relation by `a(v)` and using the second gives `a(v)² · b(s vᵉ) · a(v)⁻² = b(s'' vᵉ)`, and
+`a(v)² = a(v)⁻¹`. -/
 theorem ConjPair.chain (data : Witness p q G) (hp : p = 3)
     {e : ℕ} {s s' s'' : GaloisField p q}
     (h₁ : ConjPair data e s s') (h₂ : ConjPair data e s' s'') :
@@ -422,39 +385,21 @@ theorem ConjPair.chain (data : Witness p q G) (hp : p = 3)
   rw [← hdouble]
   group
 
-/-! ### The composition calculus
+/-! ### Frobenius-closed families
 
-From two pairs one manufactures a third whose ratio is the product (straight) or the quotient
-(flipped) of the two ratios.  The conjugator is `a(η v + v)` where `η = (c·s'/t)^{e²}` is chosen —
-via the sign `c ∈ {±1}` — to be a *square*, so that the `t`-relation applies at `η v`; and
-`1 + η ≠ 0` because `-1` is a non-square.  The flipped variant uses the `t`-relation backwards and
-degenerates only when `t' = ±s'`. -/
+`ConjPair.chain` and the cyclicity of the Frobenius module (`Algebra/FrobeniusCyclicModule.lean`)
+turn a Frobenius-closed family of pairs into a pair `(S, S)`.
 
-/-! ### The K3 endpoint: a spanning family of pairs -/
-
-/-! ### Theorems N2 and N3 -/
-
-/-! ### (B2) eliminated: any collision refutes hypothesis (B)
-
-`ConjPair.chain` closes the polynomial family `{(c • S, c • S') : c ∈ (ZMod 3)[X]}` of pairs
-into a 3-cycle, and the cyclicity of the Frobenius module
-(`PeterfalviProblem.Algebra.FrobeniusCyclicModule`) converts the closure into `S' = S`:
-
-* the graph property forces the annihilator inclusion `Ann(S) ⊆ Ann(S')`, so `S' = a₀ • S`
-  for some polynomial `a₀` (`exists_aeval_frobEnd_eq_of_forall_imp`);
-* chaining `(S, S') → (S', a₀² • S)` and subtracting the `a₀²`-pair forces `a₀³ • S = S`;
-* in characteristic three `a₀³ - 1 = (a₀ - 1)³`, and `X ^ q - 1` is squarefree for `q ≠ 3`,
-  so the annihilator is radical and `a₀ • S = S`, i.e. `S' = S` — fatal by
-  `false_of_collisionPair_self`.
-
-No trace hypothesis, no spanning hypothesis, no Frobenius-exoticity of the exponent: **one
-collision kills the witness**.  (For `q = 3` no exotic exponent exists — every solution of
-`e³ ≡ 1 mod n`, `n ∣ 26`, lies in `⟨3⟩` — so `false_of_centralizing` already covers that case
-and nothing is lost.) -/
+* A pair `(0, s')` has `s' = 0`. So every polynomial that kills `S` also kills `S'`, and hence
+  `S' = a₀ · S` for some polynomial `a₀` (`exists_aeval_frobEnd_eq_of_forall_imp`).
+* The chain rule, applied to the pairs `(S, a₀ · S)` and `(a₀ · S, a₀² · S)`, gives the pair
+  `(a₀² · S, S)`. Comparing it with the pair `(a₀² · S, a₀³ · S)` gives `a₀³ · S = S`.
+* In characteristic three, `a₀³ - 1 = (a₀ - 1)³`. For `q ≠ 3`, `X^q - 1` has no repeated
+  factors, so `a₀ · S = S`, that is, `S' = S`. -/
 
 open Polynomial in
-/-- Polynomial multiples of a Frobenius-closed pair family are conjugation pairs: the
-`(ZMod p)[X]`-module action through the Frobenius endomorphism preserves the family. -/
+/-- If `(S^{pʲ}, S'^{pʲ})` is a pair for every `j`, then `(c · S, c · S')` is a pair for every
+polynomial `c`. -/
 theorem conjPair_aeval_of_frobenius_family (data : Witness p q G) {e : ℕ}
     {S S' : GaloisField p q}
     (hfam : ∀ j : ℕ, ConjPair data e (S ^ p ^ j) (S' ^ p ^ j)) (c : (ZMod p)[X]) :
@@ -463,12 +408,9 @@ theorem conjPair_aeval_of_frobenius_family (data : Witness p q G) {e : ℕ}
   exact ConjPair.sum _ _ _ fun j _ => (hfam j).nsmul _
 
 open Polynomial in
-/-- **The chain-reversal engine, for pair families of any provenance.**  A Frobenius-closed
-conjugation-pair family with non-zero seed refutes hypothesis (B) — no collision needed.
-Chain reversal (`ConjPair.chain`) plus the cyclicity of the Frobenius module force `S' = S`,
-which is fatal by the fixed-point principle `false_of_conjPair_self`.  (Closed loops of the
-collision-free skew-pair calculus provide such families; a collision provides one via
-`ConjPair.of_collisionPair` and `CollisionPair.frobenius_iterate`.) -/
+/-- **Frobenius-closed families.** Let `q ≠ 3`, and suppose that `(S^{3ʲ}, S'^{3ʲ})` is a pair
+for every `j`, with `S ≠ 0`. Then we reach a contradiction: by the argument above, `(S, S)` is a
+pair, which contradicts `false_of_conjPair_self`. -/
 theorem false_of_conjPair_frobenius_family (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -537,10 +479,9 @@ theorem false_of_conjPair_frobenius_family (data : Witness p q G) (hp : p = 3)
   exact false_of_conjPair_self data rfl hqprime hqodd he hcube hexp hself hS0
 
 open Polynomial in
-/-- **(B2) is eliminated: a single collision refutes hypothesis (B)** — with no trace
-hypothesis, no spanning hypothesis, and no condition on the exponent beyond the standing
-ones.  Special case of `false_of_conjPair_frobenius_family` with the family supplied by the
-Frobenius twists of the collision. -/
+/-- **No collision exists** when `q ≠ 3`. The Frobenius images of a collision give a
+Frobenius-closed family of pairs (`ConjPair.of_collisionPair`, `CollisionPair.frobenius_iterate`),
+and `false_of_conjPair_frobenius_family` applies. -/
 theorem false_of_collisionPair (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)

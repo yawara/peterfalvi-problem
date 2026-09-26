@@ -7,46 +7,31 @@ import PeterfalviProblem.Algebra.InverseClosedSubgroup
 import PeterfalviProblem.Proof.FieldLayers
 
 /-!
-# BG Appendix C, Problem 1: the same-coset obstruction
+# The fixed-point principle
 
-`false_of_collisionPair_trace` refutes hypothesis (B) from a single collision whose normalised
-values have a non-zero trace.  This file prepares the *trace-free* refutation available when the
-two Paley points of the collision lie in one coset of the fixed subgroup of `z ↦ z ^ e`.
+Let `data` be a witness with `p = 3` and `q` odd, and let `e` be an odd exponent with
+`g w = wᵉ g` on `σ(U)` and `z^{e³} = z` on `𝔽_{3^q}` (`exists_odd_cube_exponent`).
 
-In that situation `K(p) = K(r)`, so the two normalised values coincide, `S = S'`, and relation (4)
-degenerates from a conjugacy into a **commutation**
+The set of `s ∈ 𝔽_{3^q}` such that `a(t)` commutes with `b(s tᵉ)` for every `t` is an additive
+subgroup (`commSubgroup`). It is closed under `s ↦ (sᵉ)⁻¹`: conjugate the commutation by `g²`,
+and use `d(u) = a(-uᵉ) · b(-u^{e²})` together with the fact that the layer `a` is abelian.
+Applying this three times gives closure under `s ↦ s⁻¹`.
 
-`[a(t), b(S t^e)] = 1`.
-
-The set of `S` for which that holds for every `t` is an additive subgroup `commSubgroup` of
-`𝔽_{3^q}`, and — this is the point — it is closed under `s ↦ (s ^ e)⁻¹`: conjugating the
-commutation by `g²` turns the first layer into the third, and the factorisation
-`d(u) = a(-u^e) · b(-u^{e²})` of `layerFieldHom_two_eq` cancels the first-layer factor because the
-first layer is abelian.  Iterating three times (`e³ = 1` on the norm-one units) gives closure
-under `s ↦ s⁻¹`, at which point `PeterfalviProblem.InverseClosed.pow_four_eq_one_or_forall_mem` applies.
+An additive subgroup of `𝔽_{3^q}` that is closed under inversion is everything, or its nonzero
+elements satisfy `s⁴ = 1` (`InverseClosed.pow_four_eq_one_or_forall_mem`). In both cases a
+nonzero element forces `1 ∈ commSubgroup`. At `t = 1` this says that `x = a(1)` commutes with
+`g⁻¹ x g = b(1)`, which contradicts `not_commute_conj`.
 
 ## Main results
 
-* `conjGen_pow_three` — `g³ = 1`.
-* `conj_layerFieldHom_zero` / `conj_layerFieldHom_one` — conjugating by `g²` shifts layers.
-* `commSubgroup` — the additive subgroup of admissible twists `s`.
-* `mem_commSubgroup_of_square` — one square class of arguments suffices.
-* `mem_commSubgroup_inv_pow` — closure under `s ↦ (s ^ e)⁻¹`.
-* `inv_mem_commSubgroup` — closure under inversion, the hypothesis of
-  `PeterfalviProblem.InverseClosed.pow_four_eq_one_or_forall_mem`.
-* `mem_commSubgroup_of_collisionPair` — a collision with `S = S'` is an admissible twist.
-* `false_of_mem_commSubgroup_ne_zero` — **the fixed-point principle**: any non-zero admissible
-  twist refutes hypothesis (B) outright (both branches of the dichotomy collapse to
-  `1 ∈ commSubgroup`, i.e. to `Commute x x^g`, refuted by `not_commute_conj`).
-* `false_of_collisionPair_self` — **Theorem B**: such a collision refutes hypothesis (B), with no
-  assumption on the trace, no `q ≠ 3`, and no non-Frobenius hypothesis.
-* `false_of_sameCoset_pair` — **the certificate form**: two distinct Paley points scaled by one and
-  the same factor under `z ↦ z ^ e` refute hypothesis (B).
+* `commSubgroup`: the additive subgroup described above.
+* `inv_mem_commSubgroup`: `commSubgroup` is closed under inversion.
+* `false_of_mem_commSubgroup_ne_zero`: a nonzero element of `commSubgroup` gives a contradiction.
 -/
 
 namespace PeterfalviProblem
 
-section SameCoset
+section FixedPoint
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
@@ -58,14 +43,14 @@ private theorem commute_conj {H : Type*} [Group H] {a b : H} (h : Commute a b) (
   unfold Commute SemiconjBy
   rw [e1, e2, h.eq]
 
-/-- Conjugating the zeroth layer by `g²` gives the second. -/
+/-- Conjugation by `g²` sends the layer `a` to the layer `d`. -/
 theorem conj_layerFieldHom_zero (data : Witness p q G)
     (t : Multiplicative (GaloisField p q)) :
     (conjGen data ^ 2)⁻¹ * layerFieldHom data 0 t * conjGen data ^ 2
       = layerFieldHom data 2 t := by
   simp only [layerFieldHom_apply, pow_zero, inv_one, one_mul, mul_one]
 
-/-- Conjugating the first layer by `g²` gives the zeroth, because `g³ = 1`. -/
+/-- Conjugation by `g²` sends the layer `b` to the layer `a`, because `g³ = 1`. -/
 theorem conj_layerFieldHom_one (data : Witness p q G) (hp : p = 3)
     (t : Multiplicative (GaloisField p q)) :
     (conjGen data ^ 2)⁻¹ * layerFieldHom data 1 t * conjGen data ^ 2
@@ -77,8 +62,8 @@ theorem conj_layerFieldHom_one (data : Witness p q G) (hp : p = 3)
       = (conjGen data ^ 3)⁻¹ * fieldHom data t * conjGen data ^ 3 := by group
     _ = fieldHom data t := by rw [h3, inv_one, one_mul, mul_one]
 
-/-- **The admissible twists.**  `s` belongs to this set when the first layer commutes with the
-`s`-twisted second layer, `[a(t), b(s t^e)] = 1`, for *every* `t`. -/
+/-- The additive subgroup of the `s ∈ 𝔽_{p^q}` such that `a(t)` commutes with `b(s tᵉ)` for
+every `t`. -/
 def commSubgroup (data : Witness p q G) (e : ℕ) : AddSubgroup (GaloisField p q) where
   carrier := {s | ∀ t : GaloisField p q,
     Commute (layerFieldHom data 0 (Multiplicative.ofAdd t))
@@ -98,9 +83,8 @@ def commSubgroup (data : Witness p q G) (e : ℕ) : AddSubgroup (GaloisField p q
     rw [hneg, ofAdd_neg, map_inv]
     exact (hs t).inv_right
 
-/-- **Conjugating the commutation by `g²`.**  The first layer becomes the third and the second
-becomes the first, so an admissible twist `s` also makes the *third* layer commute with the
-`s`-twisted *first* layer. -/
+/-- Conjugation by `g²` sends the layer `a` to `d` and the layer `b` to `a`. So for
+`s ∈ commSubgroup`, `d(t)` commutes with `a(s tᵉ)` for every `t`. -/
 theorem commute_two_zero_of_mem (data : Witness p q G) (hp : p = 3) {e : ℕ}
     {s : GaloisField p q} (hs : s ∈ commSubgroup data e) (t : GaloisField p q) :
     Commute (layerFieldHom data 2 (Multiplicative.ofAdd t))
@@ -114,15 +98,15 @@ private theorem commute_of_mul_left {H : Type*} [Group H] {x y z : H} (hxy : Com
   have h := hx.inv_left.mul_left hxy
   rwa [inv_mul_cancel_left] at h
 
-/-- The zeroth layer is abelian, being the image of an abelian group. -/
+/-- The layer `a` is abelian: it is the image of an abelian group. -/
 private theorem commute_zero_zero (data : Witness p q G)
     (x y : Multiplicative (GaloisField p q)) :
     Commute (layerFieldHom data 0 x) (layerFieldHom data 0 y) :=
   (Commute.all x y).map _
 
-/-- **The relation for twists supported on the norm-one classes.**  Conjugating the commutation by
-`g²` and cancelling the abelian first-layer factor of `d(u) = a(-u^e) · b(-u^{e²})` turns an
-admissible twist `s` into the twist `(s ^ e)⁻¹`, on the arguments `t = s · u^e`. -/
+/-- For `s ∈ commSubgroup` and norm-one `u`, `a(s uᵉ)` commutes with `b(u^{e²})`. Apply
+`commute_two_zero_of_mem` at `u`, write `d(u) = a(-uᵉ) · b(-u^{e²})`, and cancel the factor
+`a(-uᵉ)`, which commutes with `a(s uᵉ)`. -/
 theorem commute_inv_pow_of_normOne (data : Witness p q G) (hp : p = 3) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {s : GaloisField p q} (hs : s ∈ commSubgroup data e) (u : normOneUnits p q) :
@@ -138,9 +122,9 @@ theorem commute_inv_pow_of_normOne (data : Witness p q G) (hp : p = 3) {e : ℕ}
     simpa using hcancel.inv_left
   exact hfinal.symm
 
-/-- **One square class suffices.**  If the defining commutation of `commSubgroup` holds at every
-argument `c * v` with `v` a non-zero square, it holds everywhere: every non-zero `t` is `c * v` or
-`-(c * v)` for such a `v` (as `-1` is a non-square), and the sign is absorbed because `e` is odd. -/
+/-- Let `c ≠ 0`. If `a(c v)` commutes with `b(s (c v)ᵉ)` for every nonzero square `v`, then
+`s ∈ commSubgroup`. Every nonzero `t` is `c v` or `-(c v)` for such a `v`, because `-1` is not a
+square. The sign does no harm, because `e` is odd. -/
 theorem mem_commSubgroup_of_square (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     (hqodd : Odd q) {e : ℕ} (he : Odd e) {c s : GaloisField p q} (hc0 : c ≠ 0)
     (hkey : ∀ v : GaloisField p q, IsSquare v → v ≠ 0 →
@@ -187,10 +171,8 @@ theorem mem_commSubgroup_of_square (data : Witness p q G) (hp : p = 3) (hq : q �
     rw [hb, ofAdd_neg, map_inv, ofAdd_neg, map_inv] at hcm
     simpa using hcm.inv_inv
 
-/-- **Closure of the admissible twists under `s ↦ (s ^ e)⁻¹`.**
-
-On the arguments `t = s · u^e` with `u` norm-one this is `commute_inv_pow_of_normOne`; the previous
-lemma extends it to every `t`. -/
+/-- `commSubgroup` is closed under `s ↦ (sᵉ)⁻¹` on nonzero elements. Combine
+`commute_inv_pow_of_normOne` with `mem_commSubgroup_of_square`. -/
 theorem mem_commSubgroup_inv_pow (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
@@ -217,10 +199,8 @@ theorem mem_commSubgroup_inv_pow (data : Witness p q G) (hp : p = 3) (hq : q ≠
   rw [harg]
   exact hres
 
-/-- **The admissible twists are closed under inversion.**  Iterating `s ↦ (s ^ e)⁻¹` three times
-is `s ↦ (s ^ (e³))⁻¹ = s⁻¹`, since `e³` acts as the identity on the field.
-
-This is the hypothesis of `PeterfalviProblem.InverseClosed.pow_four_eq_one_or_forall_mem`. -/
+/-- `commSubgroup` is closed under inversion. Applying `s ↦ (sᵉ)⁻¹` three times gives
+`s ↦ (s^{e³})⁻¹ = s⁻¹`. -/
 theorem inv_mem_commSubgroup (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -240,15 +220,12 @@ theorem inv_mem_commSubgroup (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     rw [← pow_mul, hcube]
   rwa [hx3] at h3
 
-/-- **The fixed-point principle: any non-zero admissible twist is fatal.**  If some `s ≠ 0` lies
-in `commSubgroup`, then hypothesis (B) fails — with no assumption on any trace, no `q ≠ 3`, and no
-non-Frobenius hypothesis on the exponent.
+/-- **The fixed-point principle.** A nonzero element of `commSubgroup` gives a contradiction.
 
-Both branches of the inversion-closure dichotomy collapse to `1 ∈ commSubgroup`: in the
-prime-field branch `s ^ 4 = 1` and `-1` is a non-square, so `s = ±1` and `1` is in the (additive)
-subgroup; in the full branch everything is.  But `1 ∈ commSubgroup` evaluated at `t = 1` says that
-`x = a(1)` commutes with `x^g = b(1)`, which is exactly the endgame `not_commute_conj` of
-Theorem 1. -/
+By `InverseClosed.pow_four_eq_one_or_forall_mem`, either `commSubgroup` is everything, or
+`s⁴ = 1`. In the second case `s = ±1`, because `-1` is not a square. In both cases
+`1 ∈ commSubgroup`. At `t = 1` this says that `x = a(1)` commutes with `g⁻¹ x g = b(1)`, which
+contradicts `not_commute_conj`. -/
 theorem false_of_mem_commSubgroup_ne_zero (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -293,7 +270,7 @@ theorem false_of_mem_commSubgroup_ne_zero (data : Witness p q G) (hp : p = 3)
         have hneg := (commSubgroup data e).neg_mem hs
         rwa [hs1, neg_neg] at hneg
     · exact hall 1
-  -- `1 ∈ commSubgroup` at the argument `t = 1` is `Commute x x^g`, refuted by `not_commute_conj`
+  -- at `t = 1`, `1 ∈ commSubgroup` says that `x` commutes with `g⁻¹ x g`
   have hcomm := hone 1
   rw [one_pow, mul_one] at hcomm
   refine not_commute_conj data rfl ?_
@@ -306,13 +283,6 @@ theorem false_of_mem_commSubgroup_ne_zero (data : Witness p q G) (hp : p = 3)
     rfl
   rwa [ha1, hb1] at hcomm
 
-/-! ### The certificate form
-
-What a computation actually produces is two Paley points lying in one coset of the fixed subgroup,
-i.e. two points `a ≠ b` with `a ^ e = lam · a`, `(a+1) ^ e = lam · (a+1)` and the same for `b`,
-with a *common* multiplier `lam`.  The two lemmas below turn that data into a `CollisionPair` with
-equal normalised values, and hence into a refutation of hypothesis (B). -/
-
-end SameCoset
+end FixedPoint
 
 end PeterfalviProblem

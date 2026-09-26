@@ -23,8 +23,8 @@ namespace PeterfalviProblem
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-- **The exponent of a witness.**  From hypothesis (B) alone: an odd exponent `e` with
-`zᵉ³ = z` on the field, acting as `w ↦ wᵉ` on `σ(U)` by `g`-conjugation. -/
+/-- **The exponent of a witness.** For `p = 3` and odd `q`, there is an odd `e` such that
+`z^{e³} = z` for every `z ∈ 𝔽_{3^q}` and `g w = wᵉ g` for every `w ∈ σ(U)`. -/
 theorem exists_odd_cube_exponent (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hqodd : Odd q) :
     ∃ e : ℕ, Odd e ∧ (∀ z : GaloisField p q, z ^ (e * e * e) = z) ∧

@@ -32,17 +32,14 @@ namespace PeterfalviProblem
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-! ### Steps 6–7: the branches of the master formula
+/-! ### The four branches of the master formula
 
-With the master formula in hand the loops are no longer needed: each parameter branch is pure
-field arithmetic.  `Δ = λ₊ - λ₋ = 0` forces antisymmetric weights and dies on three points;
-`Σ̄ = λ₊ + λ₋ = 0` forces constant weights and dies through the `e²`-collision bridge back to
-Part I. -/
+Once the master formula holds, each branch is a computation in `𝔽_{3^q}`. -/
 
 theorem sqSelect_self {x lam : GaloisField p q} : sqSelect x lam lam = lam := ite_self lam
 
-/-- Negating the argument of an antisymmetric selector negates the value (`-1` is a
-non-square). -/
+/-- `sqSelect (-x) λ (-λ) = -sqSelect x λ (-λ)`, because exactly one of `x` and `-x` is a
+square. -/
 private theorem sqSelect_neg_apply (hneg1 : ¬IsSquare (-1 : GaloisField p q))
     {x : GaloisField p q} (hdich : IsSquare x ∨ IsSquare (-x)) (hx0 : x ≠ 0)
     {lam : GaloisField p q} :
@@ -54,8 +51,8 @@ private theorem sqSelect_neg_apply (hneg1 : ¬IsSquare (-1 : GaloisField p q))
   · have hnegx : IsSquare (-x) := hdich.resolve_left hx
     rw [sqSelect_of_isSquare hnegx, sqSelect_of_not_isSquare hx, neg_neg]
 
-/-- Three pairwise-antisymmetric weights with a non-zero member are impossible in
-characteristic three (`2 = -1` is invertible). -/
+/-- In characteristic three, `Ka + Kb = Ka + Kc = Kb + Kc = 0` forces `Kc = 0`, because
+`2 ≠ 0`. -/
 private theorem false_of_antisym_triple (hp : p = 3) {Ka Kb Kc : GaloisField p q}
     (hab : Ka + Kb = 0) (hac : Ka + Kc = 0) (hbc : Kb + Kc = 0) (hc : Kc ≠ 0) : False := by
   subst hp
@@ -66,9 +63,9 @@ private theorem false_of_antisym_triple (hp : p = 3) {Ka Kb Kc : GaloisField p q
     one_ne_zero (by linear_combination h30 - h20 : (1 : GaloisField 3 q) = 0)
   exact hc ((mul_eq_zero.mp h2).resolve_left h2ne)
 
-/-- **Branch `Δ = 0`** (`λ₊ = λ₋`).  The master formula becomes sign-free, so the swapped pair
-gives `K(p) = -K(r)` for every ordered pair (`e` odd); three distinct Paley points then force
-`K = 0`, contradicting the non-vanishing of the weight.  No loops are needed. -/
+/-- **The branch `λ₊ = λ₋`.** Then the master formula reads `K(p) = λ (δ₀ᵉ - δ₁ᵉ)`. For the pair
+`(r, p)` it gives `K(r) = -K(p)`, because `e` is odd. With three distinct Paley points this forces
+`K = 0`, but `K ≠ 0`. -/
 theorem false_of_masterFormula_delta_zero (hp : p = 3) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     {a₀ a₁ b₀ b₁ c₀ c₁ : normOneUnits p q}
@@ -99,10 +96,11 @@ theorem false_of_masterFormula_delta_zero (hp : p = 3) {e : ℕ} (he : Odd e)
     (key a₀ a₁ c₀ c₁ haa hcc hac) (key b₀ b₁ c₀ c₁ hbb hcc hbc)
     (skewPair_edge_weight_ne_zero hcube hcc)
 
-/-- **Branch `Σ̄ = 0`** (`λ₋ = -λ₊`).  The selector becomes antisymmetric, so the swapped pair
-gives `K(p) = K(r)` for every ordered pair: `K` is constant on the Paley set.  Two distinct
-Paley points then produce an `e²`-collision of `powDiff`, the downward conjugation bridge
-turns it into an `e`-collision, and Part I kills the witness. -/
+/-- **The branch `λ₊ + λ₋ = 0`.** Then the master formula for the pairs `(p, r)` and `(r, p)`
+gives `K(p) = K(r)`. So `K` is constant on the Paley points. Since
+`K(p) = -powDiff (e²) p₁`, two distinct Paley points give a collision of `powDiff (e²)`, and hence
+a collision of `powDiff e` (`Paley.exists_paley_collision_pow_mul_down`). This contradicts
+`false_of_collisionPair`. -/
 theorem false_of_masterFormula_sigma_zero (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -172,7 +170,7 @@ theorem false_of_masterFormula_sigma_zero (data : Witness p q G) (hp : p = 3)
     linear_combination -hKab
   obtain ⟨c, hcP, d, hdP, hcd, hpd⟩ := Paley.exists_paley_collision_pow_mul_down hchar2 h4
     he hcube (hmem a₀ a₁ haa) (hmem b₀ b₁ hbb) hne₁ hval
-  -- package the `e`-collision as a `CollisionPair` and kill it by Part I
+  -- package the `e`-collision as a `CollisionPair`; `false_of_collisionPair` refutes it
   obtain ⟨hc0, hcsq, hc10, hc1sq⟩ := hcP
   obtain ⟨hd0, hdsq, hd10, hd1sq⟩ := hdP
   have hcoll : ∃ S S', CollisionPair 3 q e S S' := by
@@ -196,7 +194,8 @@ theorem false_of_masterFormula_sigma_zero (data : Witness p q G) (hp : p = 3)
   obtain ⟨S, S', hpair⟩ := hcoll
   exact false_of_collisionPair data rfl hqprime hq3 hqodd he hcube hexp hpair
 
-/-- Negating the argument of the selector swaps its two values (`-1` is a non-square). -/
+/-- `sqSelect (-x) λ₊ λ₋ = sqSelect x λ₋ λ₊`, because exactly one of `x` and `-x` is a
+square. -/
 private theorem sqSelect_neg_swap (hneg1 : ¬IsSquare (-1 : GaloisField p q))
     {x : GaloisField p q} (hdich : IsSquare x ∨ IsSquare (-x)) (hx0 : x ≠ 0)
     {lamP lamM : GaloisField p q} :
@@ -207,14 +206,14 @@ private theorem sqSelect_neg_swap (hneg1 : ¬IsSquare (-1 : GaloisField p q))
     rw [sqSelect_of_not_isSquare hnx, sqSelect_of_isSquare hx]
   · rw [sqSelect_of_isSquare (hdich.resolve_left hx), sqSelect_of_not_isSquare hx]
 
-/-- The selector and its value-swapped twin sum to the sum of the values. -/
+/-- `sqSelect x a b + sqSelect x b a = a + b`. -/
 private theorem sqSelect_add_swap {x a b : GaloisField p q} :
     sqSelect x a b + sqSelect x b a = a + b := by
   by_cases hx : IsSquare x
   · rw [sqSelect_of_isSquare hx, sqSelect_of_isSquare hx]
   · rw [sqSelect_of_not_isSquare hx, sqSelect_of_not_isSquare hx, add_comm]
 
-/-- The selector commutes with `λ ↦ λ - λ³`. -/
+/-- `sqSelect` commutes with `λ ↦ λ - λ³`. -/
 private theorem sqSelect_sub_cube {x lamP lamM : GaloisField p q} :
     sqSelect x lamP lamM - sqSelect x lamP lamM ^ (3 : ℕ)
       = sqSelect x (lamP - lamP ^ (3 : ℕ)) (lamM - lamM ^ (3 : ℕ)) := by
@@ -222,7 +221,7 @@ private theorem sqSelect_sub_cube {x lamP lamM : GaloisField p q} :
   · simp only [sqSelect_of_isSquare hx]
   · simp only [sqSelect_of_not_isSquare hx]
 
-/-- The selector is invariant under cubing the argument (`x³ = x·x²` has the sign of `x`). -/
+/-- `x³` and `x` have the same square class, because `x³ = x · x²`. -/
 private theorem sqSelect_cube {x lamP lamM : GaloisField p q} (hx0 : x ≠ 0) :
     sqSelect (x ^ (3 : ℕ)) lamP lamM = sqSelect x lamP lamM := by
   by_cases hx : IsSquare x
@@ -234,13 +233,12 @@ private theorem sqSelect_cube {x lamP lamM : GaloisField p q} (hx0 : x ≠ 0) :
       exact h.mul ⟨x⁻¹, pow_two x⁻¹⟩
     rw [sqSelect_of_not_isSquare h3, sqSelect_of_not_isSquare hx]
 
-/-- **Branch `μ ≠ 0`: Frobenius quantisation.**  Comparing the master formula on `(p³, r³)`
-with the cube of the master formula on `(p, r)` yields the quantisation identity
-`μ_{χ(δ₀)}·δ₀^{3e} = μ_{χ(δ₁)}·δ₁^{3e}` with `μ_c = λ_c - λ_c³`.  Adding it to its swap gives
-`(μ₊ + μ₋)(δ₀^{3e} - δ₁^{3e}) = 0`, so `μ₋ = -μ₊` (a collision otherwise); if `μ₊ ≠ 0`,
-same-sign pairs are collisions and mixed pairs are antipodal, so *every* pair is antipodal —
-the master formula degenerates to `K = Σ̄·δ₀ᵉ` and pins the partner of `a` uniquely,
-contradicting two distinct partners.  Hence `λ₊, λ₋ ∈ 𝔽₃`. -/
+/-- **The branch `λ₊ ∉ 𝔽₃` or `λ₋ ∉ 𝔽₃`.** Write `μ(x) = λ(x) - λ(x)³`. The master formula
+for the pair `(p³, r³)`, compared with the cube of the master formula for `(p, r)`, gives
+`μ(δ₀) δ₀^{3e} = μ(δ₁) δ₁^{3e}`. Adding the same identity for the pair `(r, p)` gives
+`μ₋ = -μ₊`, since there is no collision. So `μ₊ ≠ 0`, and then every edge has `δ₁ = -δ₀`. The
+master formula becomes `K(a) = (λ₊ + λ₋) δ₀ᵉ` for every edge from `a`. This determines the end
+point of the edge, so `a` cannot have two different partners. -/
 theorem false_of_masterFormula_mu_ne_zero (hp : p = 3) (hq0 : q ≠ 0) (hqodd : Odd q)
     {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -269,7 +267,7 @@ theorem false_of_masterFormula_mu_ne_zero (hp : p = 3) (hq0 : q ≠ 0) (hqodd : 
     intro x y k
     rw [normOneVal_pow, normOneVal_pow, pow_right_comm (normOneVal x) 3 k,
       pow_right_comm (normOneVal y) 3 k, ← sub_pow_char]
-  -- the quantisation identity (Q), for every pair
+  -- the identity `μ(δ₀) δ₀^{3e} = μ(δ₁) δ₁^{3e}`, for every pair
   have hQ : ∀ x₀ x₁ y₀ y₁ : normOneUnits 3 q,
       normOneVal x₀ = normOneVal x₁ + 1 → normOneVal y₀ = normOneVal y₁ + 1 →
       normOneVal x₀ ≠ normOneVal y₀ →
@@ -311,7 +309,7 @@ theorem false_of_masterFormula_mu_ne_zero (hp : p = 3) (hq0 : q ≠ 0) (hqodd : 
       rw [h1, sub_pow_char, mul_pow, mul_pow]
     rw [← sqSelect_sub_cube, ← sqSelect_sub_cube]
     linear_combination hc1 - h3
-  -- adding (Q) to its swap forces `μ₋ = -μ₊`
+  -- adding the identity for the pair `(r, p)` forces `μ₋ = -μ₊`
   have hdich : ∀ x : GaloisField 3 q, x ≠ 0 → IsSquare x ∨ IsSquare (-x) :=
     fun x hx => isSquare_or_isSquare_neg_galois rfl hq0 hqodd hx
   have hd0ab : normOneVal b₀ ^ e - normOneVal a₀ ^ e ≠ 0 :=
@@ -350,7 +348,7 @@ theorem false_of_masterFormula_mu_ne_zero (hp : p = 3) (hq0 : q ≠ 0) (hqodd : 
   have hμP : lamP - lamP ^ (3 : ℕ) ≠ 0 := by
     intro h0
     exact hμ ⟨h0, by rw [hμsum, h0, neg_zero]⟩
-  -- every pair is antipodal
+  -- every edge has `δ₁ = -δ₀`
   have hanti : ∀ x₀ x₁ y₀ y₁ : normOneUnits 3 q,
       normOneVal x₀ = normOneVal x₁ + 1 → normOneVal y₀ = normOneVal y₁ + 1 →
       normOneVal x₀ ≠ normOneVal y₀ →
@@ -401,7 +399,7 @@ theorem false_of_masterFormula_mu_ne_zero (hp : p = 3) (hq0 : q ≠ 0) (hqodd : 
         linear_combination -hq1
       exact absurd (Paley.pow_injective_of_cube hcube
         (h3inj _ _ (mul_left_cancel₀ hμP hq1'))) hcollx
-  -- the master formula degenerates to `K = Σ̄·δ₀ᵉ` and pins the partner of `a`
+  -- the master formula becomes `K(a) = (λ₊ + λ₋) δ₀ᵉ`, which pins the partner of `a`
   have hpin : ∀ y₀ y₁ : normOneUnits 3 q,
       normOneVal y₀ = normOneVal y₁ + 1 → normOneVal a₀ ≠ normOneVal y₀ →
       normOneVal a₁ ^ (e * e) - normOneVal a₀ ^ (e * e)
@@ -421,13 +419,12 @@ theorem false_of_masterFormula_mu_ne_zero (hp : p = 3) (hq0 : q ≠ 0) (hqodd : 
   have h0e := Paley.pow_injective_of_cube hcube hpow
   exact hbc (Paley.pow_injective_of_cube hcube (by linear_combination h0e))
 
-/-- **Branch `λ ∈ 𝔽₃`: the four remaining candidates.**  With `λ₊, λ₋ ∈ 𝔽₃`, `Δ ≠ 0` and
-`Σ̄ ≠ 0` force exactly one of `λ₊, λ₋` to vanish.  A same-sign pair then dies: one of its two
-orientations reads the vanished coefficient on both terms, so its weight is zero.  Hence all
-pairs are mixed, and the master formula pins the partner of `a` through the non-vanished
-coefficient — one candidate partner per sign pattern.  Three distinct partners `b, c, d` of
-`a` overload the two patterns, and the pinning identifies two of them.  Step 7 of the case
-tree. -/
+/-- **The branch `λ₊, λ₋ ∈ 𝔽₃`**, with `λ₊ ≠ λ₋` and `λ₊ + λ₋ ≠ 0`. Then exactly one of `λ₊`
+and `λ₋` is zero. If `δ₀` and `δ₁` have the same square class, then one of the pairs `(p, r)` and
+`(r, p)` gets `K = 0` from the master formula, which is impossible. So `δ₀` and `δ₁` have
+different square classes for every edge. Then the master formula determines the partner `r` of
+`a` from its square-class pattern. There are only two patterns, so three partners `b`, `c`, `d`
+of `a` are too many. -/
 theorem false_of_masterFormula_cubic (hp : p = 3) (hq0 : q ≠ 0) (hqodd : Odd q)
     {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -464,7 +461,7 @@ theorem false_of_masterFormula_cubic (hp : p = 3) (hq0 : q ≠ 0) (hqodd : Odd q
     · exact Or.inr ⟨hM, by rw [hP]; exact neg_ne_zero.mpr one_ne_zero⟩
     · exact absurd (by rw [hP, hM]; ring : lamP + lamM = 0) hSig
     · exact absurd (hP.trans hM.symm) hDel
-  -- a same-sign pair dies: one orientation has weight zero
+  -- an edge whose `δ₀` and `δ₁` have the same square class gets `K = 0` in one direction
   have hsame_dead : ∀ x₀ x₁ y₀ y₁ : normOneUnits 3 q,
       normOneVal x₀ = normOneVal x₁ + 1 → normOneVal y₀ = normOneVal y₁ + 1 →
       normOneVal x₀ ≠ normOneVal y₀ →
@@ -509,7 +506,7 @@ theorem false_of_masterFormula_cubic (hp : p = 3) (hq0 : q ≠ 0) (hqodd : Odd q
       ¬(IsSquare (normOneVal y₀ ^ e - normOneVal x₀ ^ e)
         ↔ IsSquare (normOneVal y₁ ^ e - normOneVal x₁ ^ e)) :=
     fun x₀ x₁ y₀ y₁ hxx hyy hxy hiff => hsame_dead x₀ x₁ y₀ y₁ hxx hyy hxy hiff
-  -- two partners of `a` with the same sign pattern coincide
+  -- two partners of `a` with the same square-class pattern coincide
   have key : ∀ y₀ y₁ z₀ z₁ : normOneUnits 3 q,
       normOneVal y₀ = normOneVal y₁ + 1 → normOneVal z₀ = normOneVal z₁ + 1 →
       normOneVal a₀ ≠ normOneVal y₀ → normOneVal a₀ ≠ normOneVal z₀ →
@@ -567,7 +564,7 @@ theorem false_of_masterFormula_cubic (hp : p = 3) (hq0 : q ≠ 0) (hqodd : Odd q
         have hy1 : normOneVal y₁ = normOneVal z₁ :=
           Paley.pow_injective_of_cube hcube (by linear_combination hz1)
         exact hyz (by linear_combination hyy - hzz + hy1)
-  -- three partners overload the two sign patterns
+  -- three partners are too many for the two patterns
   by_cases hB : IsSquare (normOneVal b₀ ^ e - normOneVal a₀ ^ e) <;>
     by_cases hC : IsSquare (normOneVal c₀ ^ e - normOneVal a₀ ^ e) <;>
       by_cases hD : IsSquare (normOneVal d₀ ^ e - normOneVal a₀ ^ e)
@@ -580,14 +577,15 @@ theorem false_of_masterFormula_cubic (hp : p = 3) (hq0 : q ≠ 0) (hqodd : Odd q
   · exact key b₀ b₁ c₀ c₁ hbb hcc hab hac hbc (iff_of_false hB hC)
   · exact key b₀ b₁ c₀ c₁ hbb hcc hab hac hbc (iff_of_false hB hC)
 
-/-! ### The capstone: no witness for `q ≠ 3` -/
+/-! ### No witness exists -/
 
-/-- **The case tree, assembled: hypothesis (B) has no witness for `q ≠ 3`.**  Despite the
-historical name, no exoticity of the exponent is assumed — the tree kills *every* exponent
-(`e` odd with `e³ = 1` on the field, as every witness provides): a collision dies by Part I;
-otherwise the conspiracy collapses to the master formula, and its four parameter branches
-(`Δ = 0`, `Σ̄ = 0`, `μ ≠ 0`, `λ ∈ 𝔽₃`) all die.  The four distinct Paley points needed by the
-branches exist because `|T| ≥ (3^q - 3)/4 ≥ 60` for `q ≥ 5`. -/
+/-- **The case `q ≠ 3`.** Let `e` be odd, with `z^{e³} = z` for all `z` and `g w = wᵉ g` for
+all `w ∈ σ(U)`. Then we reach a contradiction.
+
+The Paley set has at least `(3^q - 3)/4 ≥ 60` points, so four distinct Paley points exist. A
+collision is impossible by `false_of_collisionPair`. Without collisions, the master formula holds
+(`exists_masterFormula_of_no_collision`), and each of its four branches gives a
+contradiction. -/
 theorem false_of_odd_cube_exponent (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -596,7 +594,7 @@ theorem false_of_odd_cube_exponent (data : Witness p q G) (hp : p = 3)
   classical
   have hq0 : q ≠ 0 := hqprime.ne_zero
   have hneg1 := not_isSquare_neg_one_galois rfl hq0 hqodd
-  -- four distinct Paley elements
+  -- four distinct points of the Paley set
   let : Fintype (GaloisField 3 q) := Fintype.ofFinite _
   have : CharP (GaloisField 3 q) 3 := by
     rw [← Algebra.charP_iff (ZMod 3) (GaloisField 3 q) 3]
@@ -643,7 +641,7 @@ theorem false_of_odd_cube_exponent (data : Witness p q G) (hp : p = 3)
     (hT t₃).mp (Finset.mem_of_mem_erase (Finset.mem_of_mem_erase ht₃))
   obtain ⟨hp₄0, hp₄sq, hp₄10, hp₄1sq⟩ := (hT t₄).mp
     (Finset.mem_of_mem_erase (Finset.mem_of_mem_erase (Finset.mem_of_mem_erase ht₄)))
-  -- lift to Paley pairs of norm-one units
+  -- the corresponding Paley points
   let mk : ∀ (t : GaloisField 3 q), t ≠ 0 → IsSquare t → normOneUnits 3 q :=
     fun t ht0 htsq => ⟨Units.mk0 t ht0,
       (mem_normOneUnits_iff_isSquare rfl hq0 _).mpr (by simpa using htsq)⟩
@@ -681,7 +679,7 @@ theorem false_of_odd_cube_exponent (data : Witness p q G) (hp : p = 3)
     fun h => h34.symm (by
       have h' : (t₃ + 1 : GaloisField 3 q) = t₄ + 1 := h
       linear_combination h')
-  -- a collision dies by Part I
+  -- a collision is impossible
   by_cases hcoll : ∃ p₀ p₁ r₀ r₁ : normOneUnits 3 q,
       normOneVal p₀ = normOneVal p₁ + 1 ∧ normOneVal r₀ = normOneVal r₁ + 1 ∧
       normOneVal p₀ ≠ normOneVal r₀ ∧
@@ -691,7 +689,7 @@ theorem false_of_odd_cube_exponent (data : Witness p q G) (hp : p = 3)
       hpp hrr (by linear_combination -heq) (skewPair_edge_left_ne_zero hcube hne)
     exact false_of_collisionPair data rfl hqprime hq3 hqodd he hcube hexp hpair
   push Not at hcoll
-  -- no collision: the conspiracy collapses to the master formula
+  -- without collisions, the master formula holds
   obtain ⟨lamP, lamM, hmaster⟩ := exists_masterFormula_of_no_collision data rfl hqprime hq3
     hqodd he hcube hexp hxx₁ hxx₂ hxx₃ hne₁₂ hne₁₃ hne₂₃ hcoll
   by_cases hDel : lamP = lamM
@@ -709,21 +707,17 @@ theorem false_of_odd_cube_exponent (data : Witness p q G) (hp : p = 3)
   · exact false_of_masterFormula_mu_ne_zero rfl hq0 hqodd he hcube hxx₁ hxx₂ hxx₃
       hne₁₂ hne₁₃ hne₂₃ hcoll hmaster hSig hmu
 
-/-- **Hypothesis (B) has no witness for `p = 3`, `q ≠ 3`** — from the witness data alone:
-`q` is odd by condition (A), the exponent is extracted from the witness
-(`exists_odd_cube_exponent`), and the case tree kills it (`false_of_odd_cube_exponent`). -/
+/-- **No witness exists for `p = 3` and `q ≠ 3`.** Condition (A) makes `q` odd, the witness
+gives an exponent (`exists_odd_cube_exponent`), and `false_of_odd_cube_exponent` applies. -/
 theorem false_of_ne_three (data : Witness p q G) (hp : p = 3) (hq3 : q ≠ 3) :
     False := by
   have hqodd := q_odd data hp
   obtain ⟨e, he, hcube, hexp⟩ := exists_odd_cube_exponent data hp data.q_prime hqodd
   exact false_of_odd_cube_exponent data hp data.q_prime hq3 hqodd he hcube hexp
 
-/-- **BG Appendix C, Problem 1 (Péterfalvi 1993), resolved: hypothesis (B) has no witness
-for `p = 3`.**  The answer to "*Can the hypothesis of Proposition 9 be satisfied for
-`p = 3`?*" is **no**, for every `q` and with no finiteness assumption on `G`: for `q ≠ 3` the
-collision-free skew calculus kills every exponent (`false_of_ne_three`), and for `q = 3` every
-admissible exponent is a Frobenius power mod `13` and Theorem 1 applies
-(`false_of_frobenius_exponent`). -/
+/-- **No witness exists for `p = 3`.** For `q ≠ 3` this is `false_of_ne_three`. For `q = 3`,
+`|U| = 13` and `e³ ≡ 1 (mod 13)`, so `e ≡ 1`, `3` or `9 (mod 13)`. Hence `e` acts on `U` as a power
+of the Frobenius map, and `false_of_frobenius_exponent` applies. -/
 theorem false_of_witness (data : Witness p q G) (hp : p = 3) : False := by
   by_cases hq3 : q = 3
   · subst hq3

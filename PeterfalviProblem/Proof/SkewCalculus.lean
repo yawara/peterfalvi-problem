@@ -6,42 +6,36 @@ Authors: Yawara Ishida
 import PeterfalviProblem.Proof.PairComposition
 
 /-!
-# BG Appendix C, Problem 1: the skew-pair calculus
+# Skew pairs
 
-The collision-free attack on hypothesis (B) (`notes/bg/appC_problem1_resolution.md` §3,
-issue 0181).  A **skew pair** `SkewPair data e A B X Y` is the relation
+Let `data` be a witness with `p = 3` and `q ≠ 3` odd, and let `e` be an odd exponent as in
+`exists_odd_cube_exponent`.
 
-`a(A w) · b(X wᵉ) · a(B w)⁻¹ = b(Y wᵉ)`   (for every non-zero square `w`),
+A *skew pair* `SkewPair data e A B X Y` is the relation
 
-where `a`, `b` are the zeroth and first layers.  Eliminating the third-layer factorisations
-`layerFieldHom_two_factor` of two Paley points `p ≠ r` against each other produces the
-**skew edge** `skewPair_edge`, a skew pair with data
+`a(A w) · b(X wᵉ) · a(B w)⁻¹ = b(Y wᵉ)` for every nonzero square `w`.
 
-`(A, B; X, Y) = (δ₀, δ₁; K(p), K(r))`,  `δ₀ = rᵉ - pᵉ`,  `δ₁ = (r-1)ᵉ - (p-1)ᵉ`,
+We call `A` and `B` the parameters and `X` and `Y` the weights. When `A = B`, a skew pair is a
+conjugation pair after the substitution `v = A w` (`SkewPair.conjPair_of_self`).
 
-with **no collision hypothesis**: a collision is exactly the degenerate edge with `A = B`.
+A *Paley point* is a pair of norm-one units `p₀ = p₁ + 1`. For two Paley points `p` and `r`, write
+`δ₀ = r₀ᵉ - p₀ᵉ`, `δ₁ = r₁ᵉ - p₁ᵉ`, `K(p) = p₁^{e²} - p₀^{e²}` and `K(r) = r₁^{e²} - r₀^{e²}`.
+Comparing the factorizations of `layerFieldHom_two_factor` for `p` and `r` gives the skew pair
+`(δ₀, δ₁; K(p), K(r))` with no further condition (`skewPair_edge`). We call it the *edge* from
+`p` to `r`. A collision is an edge with `δ₀ = δ₁`.
 
-Design note (layer convention).  The mathematical record builds the calculus one layer up,
-with conjugating layer `b` and line layer `d`; the two versions are `conjGen`-conjugate and
-carry the same edge data.  Building on layers `(0, 1)` instead makes a closed loop (`A = B`)
-*literally* a conjugation pair after the substitution `v := A w` (`conjPair_of_self`), so the
-chain-reversal engine `false_of_conjPair_frobenius_family` applies with no conjugation step.
+Skew pairs can be reversed, composed and rescaled. A *closed loop* is a skew pair with equal
+parameters. `FrobFam` says that all the Frobenius images `(A^{3ʲ}, B^{3ʲ}; X^{3ʲ}, Y^{3ʲ})` are skew
+pairs. Edges have this property, and the operations keep it. A Frobenius-closed closed loop whose
+weights are not both zero gives a Frobenius-closed family of conjugation pairs, and hence a
+contradiction (`FrobFam.false_of_self`).
 
-The calculus:
+## Main results
 
-* `SkewPair.rev`, `SkewPair.comp`, `SkewPair.rescale` — the groupoid operations: reversal
-  `(B, A; -X, -Y)`, composition along a matching inner parameter `(A, C; X₁+X₂, Y₁+Y₂)`, and
-  rescaling by a non-zero square `(As, Bs; Xsᵉ, Ysᵉ)`.
-* `SkewPair.self_symm` / `self_left_eq_zero` / `self_right_eq_zero` — closed-loop reversal
-  and the graph property: in a closed loop the two weights vanish together.
-* `SkewPair.conjPair_of_self` / `conjPair_of_self_neg` — a closed loop whose parameter is a
-  square (resp. non-square) is a conjugation pair with seed `X A⁻ᵉ` (resp. `-Y (-A)⁻ᵉ`,
-  read backwards).
-* `false_of_skewPair_self_frobenius_family` — **loop ⟹ kill**: a Frobenius-closed family of
-  closed loops with a non-vanishing weight refutes hypothesis (B), through the family capstone
-  `false_of_conjPair_frobenius_family`.
-
-Mathematical record: `notes/bg/appC_problem1_resolution.md` §3 (issues 0180/0181).
+* `skewPair_edge`: the edge between two Paley points.
+* `FrobFam.false_of_self`: a Frobenius-closed closed loop has zero weights.
+* `weight_sum_eq_zero_of_antipodal_edge`: an edge with `δ₁ = -δ₀` has `K(p) + K(r) = 0`.
+* `weights_eq_zero_of_four_loop`: the weights of a four-leg loop vanish.
 -/
 
 namespace PeterfalviProblem
@@ -50,10 +44,7 @@ section SkewCalculus
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-- **A skew pair.**  `SkewPair data e A B X Y` says that multiplying by the zeroth-layer
-elements `a(A w)`, `a(B w)⁻¹` carries the `X`-twisted first-layer line to the `Y`-twisted one,
-coherently over every non-zero square height `w`.  For `A = B` this is conjugation; the general
-shape is what the elimination of the third layer between two Paley points actually produces. -/
+/-- **A skew pair**: `a(A w) · b(X wᵉ) · a(B w)⁻¹ = b(Y wᵉ)` for every nonzero square `w`. -/
 def SkewPair (data : Witness p q G) (e : ℕ) (A B X Y : GaloisField p q) : Prop :=
   ∀ w : GaloisField p q, IsSquare w → w ≠ 0 →
     layerFieldHom data 0 (Multiplicative.ofAdd (A * w)) *
@@ -61,7 +52,7 @@ def SkewPair (data : Witness p q G) (e : ℕ) (A B X Y : GaloisField p q) : Prop
         (layerFieldHom data 0 (Multiplicative.ofAdd (B * w)))⁻¹
       = layerFieldHom data 1 (Multiplicative.ofAdd (Y * w ^ e))
 
-/-- The layers split additive arguments into products. -/
+/-- Each layer turns sums into products. -/
 private theorem layer_split (data : Witness p q G) (i : ℕ)
     {x y z : GaloisField p q} (h : x = y + z) :
     layerFieldHom data i (Multiplicative.ofAdd x)
@@ -71,7 +62,7 @@ private theorem layer_split (data : Witness p q G) (i : ℕ)
   rw [ofAdd_add]
   exact map_mul _ _ _
 
-/-- The layers turn negated arguments into inverses. -/
+/-- Each layer turns negation into inversion. -/
 private theorem layer_neg (data : Witness p q G) (i : ℕ)
     {x y : GaloisField p q} (h : x = -y) :
     layerFieldHom data i (Multiplicative.ofAdd x)
@@ -84,7 +75,7 @@ namespace SkewPair
 
 variable {data : Witness p q G} {e : ℕ}
 
-/-- **Reversal.**  Inverting the relation swaps the two parameters and negates the weights. -/
+/-- **Reversal**: `(A, B; X, Y)` gives `(B, A; -X, -Y)`. -/
 theorem rev {A B X Y : GaloisField p q} (h : SkewPair data e A B X Y) :
     SkewPair data e B A (-X) (-Y) := by
   intro w hw hw0
@@ -92,8 +83,7 @@ theorem rev {A B X Y : GaloisField p q} (h : SkewPair data e A B X Y) :
     layer_neg data 1 (show -Y * w ^ e = -(Y * w ^ e) by ring), ← h w hw hw0]
   group
 
-/-- **Composition.**  When the inner parameters match, the zeroth-layer factors cancel and the
-weights add. -/
+/-- **Composition**: `(A, B; X₁, Y₁)` and `(B, C; X₂, Y₂)` give `(A, C; X₁ + X₂, Y₁ + Y₂)`. -/
 theorem comp {A B C X₁ Y₁ X₂ Y₂ : GaloisField p q} (h₁ : SkewPair data e A B X₁ Y₁)
     (h₂ : SkewPair data e B C X₂ Y₂) : SkewPair data e A C (X₁ + X₂) (Y₁ + Y₂) := by
   intro w hw hw0
@@ -102,8 +92,8 @@ theorem comp {A B C X₁ Y₁ X₂ Y₂ : GaloisField p q} (h₁ : SkewPair data
     ← h₁ w hw hw0, ← h₂ w hw hw0]
   group
 
-/-- **Rescaling.**  Substituting `w ↦ s w` for a non-zero square `s` rescales the parameters by
-`s` and the weights by `sᵉ`. -/
+/-- **Rescaling** by a nonzero square `s`: `(A, B; X, Y)` gives `(A s, B s; X sᵉ, Y sᵉ)`.
+Substitute `s w` for `w`. -/
 theorem rescale {A B X Y : GaloisField p q} (h : SkewPair data e A B X Y)
     {s : GaloisField p q} (hs : IsSquare s) (hs0 : s ≠ 0) :
     SkewPair data e (A * s) (B * s) (X * s ^ e) (Y * s ^ e) := by
@@ -114,16 +104,14 @@ theorem rescale {A B X Y : GaloisField p q} (h : SkewPair data e A B X Y)
     show Y * (s * w) ^ e = Y * s ^ e * w ^ e by rw [mul_pow]; ring] at g
   exact g
 
-/-- **Closed-loop reversal.**  A closed loop (`A = B`) is a conjugation relation; reading it
-backwards negates the parameter and swaps the weights. -/
+/-- A closed loop `(A, A; X, Y)` gives `(-A, -A; Y, X)`. -/
 theorem self_symm {A X Y : GaloisField p q} (h : SkewPair data e A A X Y) :
     SkewPair data e (-A) (-A) Y X := by
   intro w hw hw0
   rw [layer_neg data 0 (show -A * w = -(A * w) by ring), ← h w hw hw0]
   group
 
-/-- **The graph property for closed loops.**  A closed loop with vanishing left weight has
-vanishing right weight: the first layer is a faithful copy of the field. -/
+/-- A closed loop `(A, A; 0, Y)` has `Y = 0`, because the layer `b` is injective. -/
 theorem self_right_eq_zero {A Y : GaloisField p q} (h : SkewPair data e A A 0 Y) : Y = 0 := by
   have h1 := h 1 ⟨1, (mul_one 1).symm⟩ one_ne_zero
   have h0 : layerFieldHom data 1 (Multiplicative.ofAdd ((0 : GaloisField p q) * 1 ^ e)) = 1 := by
@@ -142,14 +130,12 @@ theorem self_right_eq_zero {A Y : GaloisField p q} (h : SkewPair data e A A 0 Y)
     simpa using this
   simpa using hval.symm
 
-/-- **The graph property, other direction.**  A closed loop with vanishing right weight has
-vanishing left weight. -/
+/-- A closed loop `(A, A; X, 0)` has `X = 0`. -/
 theorem self_left_eq_zero {A X : GaloisField p q} (h : SkewPair data e A A X 0) : X = 0 :=
   self_right_eq_zero h.self_symm
 
-/-- **A closed loop with square parameter is a conjugation pair.**  Substituting `v := A w`
-(a bijection of the non-zero squares) turns `a(Aw) · b(Xwᵉ) · a(Aw)⁻¹ = b(Ywᵉ)` into the
-standard pair relation with seed ratio `(X A⁻ᵉ, Y A⁻ᵉ)`. -/
+/-- A closed loop `(A, A; X, Y)` with `A` a nonzero square gives the conjugation pair
+`(X A^{-e}, Y A^{-e})`. Substitute `v = A w`. -/
 theorem conjPair_of_self {A X Y : GaloisField p q} (h : SkewPair data e A A X Y)
     (hA : IsSquare A) (hA0 : A ≠ 0) :
     ConjPair data e (X * (A ^ e)⁻¹) (Y * (A ^ e)⁻¹) := by
@@ -160,8 +146,8 @@ theorem conjPair_of_self {A X Y : GaloisField p q} (h : SkewPair data e A A X Y)
     show Y * (A⁻¹ * v) ^ e = Y * (A ^ e)⁻¹ * v ^ e by rw [mul_pow, inv_pow]; ring] at g
   exact g
 
-/-- **A closed loop with non-square parameter is a conjugation pair read backwards.**  `-A` is
-then a square (`-1` is a non-square), and reversing the conjugation swaps the two weights. -/
+/-- A closed loop `(A, A; X, Y)` with `-A` a nonzero square gives the conjugation pair
+`(Y (-A)^{-e}, X (-A)^{-e})`. -/
 theorem conjPair_of_self_neg {A X Y : GaloisField p q} (h : SkewPair data e A A X Y)
     (hA : IsSquare (-A)) (hA0 : A ≠ 0) :
     ConjPair data e (Y * ((-A) ^ e)⁻¹) (X * ((-A) ^ e)⁻¹) :=
@@ -169,12 +155,9 @@ theorem conjPair_of_self_neg {A X Y : GaloisField p q} (h : SkewPair data e A A 
 
 end SkewPair
 
-/-- **The skew edge.**  Eliminating the third layer between the factorisations
-`layerFieldHom_two_factor` of two Paley points `(p₀, p₁)` and `(r₀, r₁)` yields the skew pair
-
-`(δ₀, δ₁; K(p), K(r))`,  `δ₀ = r₀ᵉ - p₀ᵉ`,  `δ₁ = r₁ᵉ - p₁ᵉ`,
-
-with no collision hypothesis (`δ₀ = δ₁` is precisely a collision). -/
+/-- **The edge between two Paley points.** For Paley points `p` and `r`, the skew pair
+`(δ₀, δ₁; K(p), K(r))` holds. Compare the two factorizations of `d(z)` given by
+`layerFieldHom_two_factor`. -/
 theorem skewPair_edge (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     (p₀ p₁ r₀ r₁ : normOneUnits p q)
@@ -228,7 +211,7 @@ theorem skewPair_edge (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : �
           ((normOneVal r₁ ^ (e * e) - normOneVal r₀ ^ (e * e)) * w ^ e)) := by
         group
 
-/-- The left edge parameter `δ₀ = r₀ᵉ - p₀ᵉ` is non-zero for distinct Paley points. -/
+/-- `δ₀ = r₀ᵉ - p₀ᵉ ≠ 0` when `p₀ ≠ r₀`. -/
 theorem skewPair_edge_left_ne_zero {e : ℕ}
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     {p₀ r₀ : normOneUnits p q} (hne : normOneVal p₀ ≠ normOneVal r₀) :
@@ -236,8 +219,7 @@ theorem skewPair_edge_left_ne_zero {e : ℕ}
   intro h0
   exact hne (Paley.pow_injective_of_cube hcube (sub_eq_zero.mp h0)).symm
 
-/-- The weight `K(p) = (p-1)^{e²} - p^{e²}` of an edge is non-zero: the `e²`-power map is
-injective and the two Paley coordinates differ by `1`. -/
+/-- `K(p) = p₁^{e²} - p₀^{e²} ≠ 0`, because `z ↦ z^{e²}` is injective and `p₀ ≠ p₁`. -/
 theorem skewPair_edge_weight_ne_zero {e : ℕ}
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
     {p₀ p₁ : normOneUnits p q} (hpp : normOneVal p₀ = normOneVal p₁ + 1) :
@@ -251,12 +233,11 @@ theorem skewPair_edge_weight_ne_zero {e : ℕ}
   rw [h1] at hpp
   simp at hpp
 
-/-- **Loop ⟹ kill.**  A Frobenius-closed family of closed loops whose weight pair does not
-vanish refutes hypothesis (B).  If one weight vanishes the graph property kills the loop
-directly; otherwise the loop is a conjugation pair with non-zero seed — forwards when the loop
-parameter is a square, backwards when it is not (the square class is Frobenius-stable, so the
-orientation is uniform in the family) — and the chain-reversal engine
-`false_of_conjPair_frobenius_family` applies. -/
+/-- A Frobenius-closed family of closed loops `(A, A; X, Y)`, with `A ≠ 0` and weights not both
+zero, gives a contradiction. If one weight is zero, then so is the other. Otherwise the loop is a
+conjugation pair with a nonzero value: read forwards if `A` is a square, and backwards if not. The
+Frobenius map does not change the square class of `A`, so the whole family is read in the same
+direction, and `false_of_conjPair_frobenius_family` applies. -/
 theorem false_of_skewPair_self_frobenius_family (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -274,7 +255,7 @@ theorem false_of_skewPair_self_frobenius_family (data : Witness p q G) (hp : p =
     intro h0
     exact hXY ⟨SkewPair.self_left_eq_zero (by rwa [h0] at h00), h0⟩
   rcases isSquare_or_isSquare_neg_galois rfl hqprime.ne_zero hqodd hA0 with hsq | hnsq
-  · -- forward orientation: seed `X A⁻ᵉ`
+  · -- read forwards: the pairs `(X A^{-e}, Y A^{-e})`
     have hfam' : ∀ j : ℕ,
         ConjPair data e ((X * (A ^ e)⁻¹) ^ 3 ^ j) ((Y * (A ^ e)⁻¹) ^ 3 ^ j) := by
       intro j
@@ -286,7 +267,7 @@ theorem false_of_skewPair_self_frobenius_family (data : Witness p q G) (hp : p =
       exact h
     exact false_of_conjPair_frobenius_family data rfl hqprime hq3 hqodd he hcube hexp
       (mul_ne_zero hX0 (inv_ne_zero (pow_ne_zero _ hA0))) hfam'
-  · -- backward orientation: seed `Y (-A)⁻ᵉ`
+  · -- read backwards: the pairs `(Y (-A)^{-e}, X (-A)^{-e})`
     have hfam' : ∀ j : ℕ,
         ConjPair data e ((Y * ((-A) ^ e)⁻¹) ^ 3 ^ j) ((X * ((-A) ^ e)⁻¹) ^ 3 ^ j) := by
       intro j
@@ -304,35 +285,25 @@ theorem false_of_skewPair_self_frobenius_family (data : Witness p q G) (hp : p =
     exact false_of_conjPair_frobenius_family data rfl hqprime hq3 hqodd he hcube hexp
       (mul_ne_zero hY0 (inv_ne_zero (pow_ne_zero _ (neg_ne_zero.mpr hA0)))) hfam'
 
-/-! ### The same-slot two-loop: proportional edges have proportional weights
+/-! ### Frobenius-closed families of skew pairs -/
 
-Two edges whose parameters are proportional by a non-zero square `s` (`δ₀ = δ₀'·s`,
-`δ₁ = δ₁'·s` — in slot language: the same ratio class and the same sign component) compose
-into the closed loop `e ∘ rev(e'·s)` with weights `(K(p) - K(p')sᵉ, K(r) - K(r')sᵉ)`,
-uniformly in the Frobenius twist.  The kill lemma forces both weights to vanish, i.e.
-`κ := K δ₁⁻ᵉ` is constant on each slot (stated multiplied-out, with no division).  This is
-step 3 of the case tree of `notes/bg/appC_problem1_resolution.md` §5. -/
-
-/-- A Paley pair is Frobenius-stable: `p₀ = p₁ + 1` gives `p₀^{pʲ} = p₁^{pʲ} + 1`. -/
+/-- Paley points are stable under the Frobenius map: `p₀ = p₁ + 1` gives
+`p₀^{pʲ} = p₁^{pʲ} + 1`. -/
 theorem paley_frobenius_iterate {p₀ p₁ : normOneUnits p q}
     (hpp : normOneVal p₀ = normOneVal p₁ + 1) (j : ℕ) :
     normOneVal (p₀ ^ p ^ j) = normOneVal (p₁ ^ p ^ j) + 1 := by
   simp only [normOneVal_pow]
   rw [hpp, add_pow_char_pow, one_pow]
 
-/-- Frobenius twists of the edge data: differences of `e`-th (or `e²`-th) powers of norm-one
-values twist by `x ↦ x^{pʲ}` componentwise. -/
+/-- `(x^{pʲ})ᵏ - (y^{pʲ})ᵏ = (xᵏ - yᵏ)^{pʲ}` in characteristic `p`. -/
 private theorem normOneVal_sub_pow_frobenius (j k : ℕ) (x y : normOneUnits p q) :
     normOneVal (x ^ p ^ j) ^ k - normOneVal (y ^ p ^ j) ^ k
       = (normOneVal x ^ k - normOneVal y ^ k) ^ p ^ j := by
   rw [normOneVal_pow, normOneVal_pow, pow_right_comm (normOneVal x) (p ^ j) k,
     pow_right_comm (normOneVal y) (p ^ j) k, ← sub_pow_char_pow]
 
-/-- **A Frobenius-closed family of skew pairs**: every Frobenius twist of the data is a skew
-pair.  Edges are Frobenius-closed because the Paley set is, and reversal, composition and
-square rescaling preserve closedness (freshman's dream), so each concrete loop of the calculus
-is assembled once at family level; a closed family with non-vanishing weight is then fatal by
-`false_of_skewPair_self_frobenius_family`. -/
+/-- **A Frobenius-closed family of skew pairs**: every Frobenius image
+`(A^{pʲ}, B^{pʲ}; X^{pʲ}, Y^{pʲ})` is a skew pair. -/
 def FrobFam (data : Witness p q G) (e : ℕ) (A B X Y : GaloisField p q) : Prop :=
   ∀ j : ℕ, SkewPair data e (A ^ p ^ j) (B ^ p ^ j) (X ^ p ^ j) (Y ^ p ^ j)
 
@@ -340,8 +311,7 @@ namespace FrobFam
 
 variable {data : Witness p q G} {e : ℕ}
 
-/-- **The skew edge is Frobenius-closed**: twisting the two Paley pairs twists the edge
-data componentwise. -/
+/-- Edges are Frobenius-closed, because the Frobenius map sends Paley points to Paley points. -/
 theorem edge (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {p₀ p₁ r₀ r₁ : normOneUnits p q}
@@ -358,7 +328,7 @@ theorem edge (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     normOneVal_sub_pow_frobenius j (e * e) r₁ r₀] at he
   exact he
 
-/-- Reversal preserves Frobenius-closedness (`pʲ` is odd). -/
+/-- Reversal keeps a family Frobenius-closed, because `3ʲ` is odd. -/
 theorem rev (hp : p = 3) {A B X Y : GaloisField p q} (h : FrobFam data e A B X Y) :
     FrobFam data e B A (-X) (-Y) := by
   subst hp
@@ -367,14 +337,14 @@ theorem rev (hp : p = 3) {A B X Y : GaloisField p q} (h : FrobFam data e A B X Y
   have hrev := (h j).rev
   rwa [← hodd.neg_pow X, ← hodd.neg_pow Y] at hrev
 
-/-- Composition preserves Frobenius-closedness (freshman's dream on the weights). -/
+/-- Composition keeps a family Frobenius-closed, because `(x + y)^{pʲ} = x^{pʲ} + y^{pʲ}`. -/
 theorem comp {A B C X₁ Y₁ X₂ Y₂ : GaloisField p q} (h₁ : FrobFam data e A B X₁ Y₁)
     (h₂ : FrobFam data e B C X₂ Y₂) : FrobFam data e A C (X₁ + X₂) (Y₁ + Y₂) := by
   intro j
   have hcomp := (h₁ j).comp (h₂ j)
   rwa [← add_pow_char_pow, ← add_pow_char_pow] at hcomp
 
-/-- Rescaling by a non-zero square preserves Frobenius-closedness. -/
+/-- Rescaling by a nonzero square keeps a family Frobenius-closed. -/
 theorem rescale {A B X Y : GaloisField p q} (h : FrobFam data e A B X Y)
     {s : GaloisField p q} (hs : IsSquare s) (hs0 : s ≠ 0) :
     FrobFam data e (A * s) (B * s) (X * s ^ e) (Y * s ^ e) := by
@@ -385,8 +355,8 @@ theorem rescale {A B X Y : GaloisField p q} (h : FrobFam data e A B X Y)
       rw [mul_pow, pow_right_comm s e (p ^ j)]]
   exact (h j).rescale (hs.pow _) (pow_ne_zero _ hs0)
 
-/-- **The family kill**: a closed Frobenius-closed family with non-vanishing weight refutes
-hypothesis (B). -/
+/-- A Frobenius-closed closed loop `(A, A; X, Y)` with `A ≠ 0` and weights not both zero gives
+a contradiction. -/
 theorem false_of_self (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -397,17 +367,13 @@ theorem false_of_self (data : Witness p q G) (hp : p = 3)
 
 end FrobFam
 
-/-! ### The antipodal two-loop: an edge of ratio `-1` forces `K(p) + K(r) = 0`
+/-! ### Edges with `δ₁ = -δ₀`
 
-An edge with `δ₁ = -δ₀` composes with its own swap `(r, p)`-edge into a closed loop with
-weights `(K(p) + K(r), K(r) + K(p))` — the forward-forward two-loop `e ∘ swap(e)`, legal
-exactly on the ratio class `-1`.  The kill lemma forces `K(p) = -K(r)`; over three distinct
-Paley points this kills the singleton-`{-1}` population (step 4 of the case tree). -/
+The edge from `r` to `p` is `(-δ₀, -δ₁; K(r), K(p))`. If `δ₁ = -δ₀`, it starts where the edge from
+`p` to `r` ends, and the two compose into a closed loop with weights `(K(p) + K(r), K(r) + K(p))`.
+-/
 
-/-- **The antipodal two-loop kill.**  An edge with `δ₁ = -δ₀` whose weight sum
-`K(p) + K(r)` does not vanish refutes hypothesis (B): the edge composes with its own swap
-into a closed loop of weight `(K(p) + K(r), K(r) + K(p))`, uniformly in the Frobenius
-twist. -/
+/-- An edge with `δ₁ = -δ₀` and `K(p) + K(r) ≠ 0` gives a contradiction. -/
 theorem false_of_antipodal_edge (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -431,10 +397,7 @@ theorem false_of_antipodal_edge (data : Witness p q G) (hp : p = 3)
   exact FrobFam.false_of_self data rfl hqprime hq3 hqodd he hcube hexp
     (skewPair_edge_left_ne_zero hcube hne) (fun hZ => hK hZ.1) (f₁.comp f₂)
 
-/-- **The ratio class `-1` forces antisymmetric weights.**  On an edge with `δ₁ = -δ₀` the
-weight sum vanishes: `K(p) = -K(r)`.  Step 4 of the case tree: in the singleton-`{-1}`
-population this holds for every ordered pair, and three distinct Paley points then force
-`K ≡ 0`, a contradiction. -/
+/-- An edge with `δ₁ = -δ₀` has `K(p) + K(r) = 0`. -/
 theorem weight_sum_eq_zero_of_antipodal_edge (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -449,16 +412,14 @@ theorem weight_sum_eq_zero_of_antipodal_edge (data : Witness p q G) (hp : p = 3)
   by_contra hK
   exact false_of_antipodal_edge data hp hqprime hq3 hqodd he hcube hexp hpp hrr hne hopp hK
 
-/-! ### Leg supply: climbing from an arbitrary height
+/-! ### Legs at any height
 
-A loop leg of the class of an edge `(p, r)` can enter at *any* non-zero height `h`: rescale
-the edge by `h/δ₀` when that is a square, and rescale the swap edge `(r, p)` by `-h/δ₀`
-otherwise (`-1` is a non-square, so exactly one case applies).  Either way the leg runs
-`h → h·(δ₁/δ₀)` — multiplication by the ratio — and its weights are sign-resolved.  These two
-lemmas make every loop of the endgame assemble mechanically. -/
+A *leg* is an edge rescaled to start at a given nonzero height `h`. If `h / δ₀` is a square, we
+rescale the edge from `p` to `r` by `h / δ₀`. Otherwise `-h / δ₀` is a square, and we rescale the
+edge from `r` to `p` by `-h / δ₀`. In both cases the leg goes from `h` to `h δ₁ / δ₀`. -/
 
-/-- **The forward leg.**  When `h/δ₀` is a square, the edge rescales onto entry height `h`,
-with weights `(K(p)(h/δ₀)ᵉ, K(r)(h/δ₀)ᵉ)`. -/
+/-- If `h / δ₀` is a square, the edge from `p` to `r` gives a leg from `h` to `h δ₁ / δ₀` with
+weights `K(p) (h / δ₀)ᵉ` and `K(r) (h / δ₀)ᵉ`. -/
 theorem FrobFam.leg_fwd (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {p₀ p₁ r₀ r₁ : normOneUnits p q}
@@ -484,9 +445,8 @@ theorem FrobFam.leg_fwd (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : 
         * (normOneVal r₀ ^ e - normOneVal p₀ ^ e)⁻¹) by ring] at hfam
   exact hfam
 
-/-- **The swap leg.**  When `h/δ₀` is a non-square, the swap edge `(r, p)` rescales onto entry
-height `h` instead (by `-h/δ₀`, a square since `-1` is a non-square), running along the same
-ratio with weights `(K(r)(-h/δ₀)ᵉ, K(p)(-h/δ₀)ᵉ)`. -/
+/-- If `-h / δ₀` is a square, the edge from `r` to `p` gives a leg from `h` to `h δ₁ / δ₀` with
+weights `K(r) (-h / δ₀)ᵉ` and `K(p) (-h / δ₀)ᵉ`. -/
 theorem FrobFam.leg_swap (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e : ℕ}
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
     {p₀ p₁ r₀ r₁ : normOneUnits p q}
@@ -513,7 +473,8 @@ theorem FrobFam.leg_swap (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0) {e :
       field_simp; ring] at hfam
   exact hfam
 
-/-- **Sign-resolved leg weight**: a forward leg contributes `K(p)`, a swapped leg `-K(r)`. -/
+/-- The coefficient of a leg's first weight: `K(p)` in the first case (`true`) and `-K(r)` in
+the second case (`false`). -/
 noncomputable def legWeight (Kp Kr : GaloisField p q) : Bool → GaloisField p q
   | true => Kp
   | false => -Kr
@@ -522,10 +483,9 @@ noncomputable def legWeight (Kp Kr : GaloisField p q) : Bool → GaloisField p q
 
 @[simp] theorem legWeight_false (Kp Kr : GaloisField p q) : legWeight Kp Kr false = -Kr := rfl
 
-/-- **The sign-resolved leg.**  The Boolean `b` selects the orientation forced by the square
-class of `h/δ₀`: the forward edge when it is a square, the swap edge otherwise.  Both run
-`h → h·(δ₁/δ₀)` with weights `(legWeight K(p) K(r) b · (h/δ₀)ᵉ, legWeight K(r) K(p) b ·
-(h/δ₀)ᵉ)` — a single uniform shape for the loop assembly of the endgame. -/
+/-- Both cases at once. The Boolean `b` says whether `h / δ₀` is a square. The leg goes from `h`
+to `h δ₁ / δ₀`, with weights `legWeight K(p) K(r) b · (h / δ₀)ᵉ` and
+`legWeight K(r) K(p) b · (h / δ₀)ᵉ`; here we use that `e` is odd. -/
 theorem FrobFam.leg_resolved (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
     {e : ℕ} (he : Odd e)
     (hexp : ∀ w ∈ data.U, conjGen data * w = w ^ e * conjGen data)
@@ -561,19 +521,12 @@ theorem FrobFam.leg_resolved (data : Witness p q G) (hp : p = 3) (hq : q ≠ 0)
   · simpa only [legWeight] using
       FrobFam.leg_fwd data hp hq hexp hpp hrr hA0 hh0 hs
 
-/-! ### The four-leg loop: forward–forward–backward–backward
+/-! ### Four-leg loops
 
-The commutator loop of the endgame (`notes/bg/appC_problem1_resolution.md` §4.2) is a four-leg
-loop: two forward legs climbing `v → ρv → σρv` and two backward legs descending
-`σρv → σv → v`.  At family level the four legs are `FrobFam` values with shared endpoints —
-the caller supplies each leg already rescaled onto the common heights — and the loop is their
-composite `h₁ ∘ h₂ ∘ rev h₃ ∘ rev h₄`, with weight `(X₁+X₂-X₃-X₄, Y₁+Y₂-Y₃-Y₄)`.  Conspiracy
-(both components vanish) is the exchange relation (EX). -/
+Four Frobenius-closed families that chain as `A → B₁ → B₂ ← B₃ ← A` compose into the closed loop
+`h₁ ∘ h₂ ∘ rev h₃ ∘ rev h₄`, with weights `(X₁ + X₂ - X₃ - X₄, Y₁ + Y₂ - Y₃ - Y₄)`. -/
 
-/-- **The four-leg loop kill.**  Four Frobenius-closed families chaining as
-`A → B₁ → B₂ ← B₃ ← A` (legs 3 and 4 used backwards) compose into a closed loop; if either
-component of the weight `(X₁+X₂-X₃-X₄, Y₁+Y₂-Y₃-Y₄)` does not vanish, hypothesis (B) is
-refuted. -/
+/-- A four-leg loop whose weights are not both zero gives a contradiction. -/
 theorem false_of_four_loop (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -589,9 +542,7 @@ theorem false_of_four_loop (data : Witness p q G) (hp : p = 3)
     show Y₁ + Y₂ + -Y₃ + -Y₄ = Y₁ + Y₂ - Y₃ - Y₄ by ring] at hcomp
   exact FrobFam.false_of_self data rfl hqprime hq3 hqodd he hcube hexp hA0 hW hcomp
 
-/-- **The exchange relation, raw form.**  Conspiracy on a four-leg loop: both components of
-the weight vanish.  Instantiated with the commutator loop's legs this is relation (EX) of the
-endgame (step 5 of the case tree). -/
+/-- The weights of a four-leg loop vanish. -/
 theorem weights_eq_zero_of_four_loop (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)

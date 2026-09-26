@@ -32,11 +32,9 @@ namespace PeterfalviProblem
 
 variable {p q : ℕ} [Fact p.Prime] {G : Type*} [Group G]
 
-/-- **Step 4: the singleton-`{-1}` population dies.**  If the three ordered pairs among three
-distinct Paley points all have ratio `-1` (`δ₁ = -δ₀`), the antipodal relations give
-`K(a) + K(b) = K(a) + K(c) = K(b) + K(c) = 0`, hence `2·K(c) = 0`; since `2 = -1` is
-invertible in characteristic three this forces `K(c) = 0`, contradicting the non-vanishing of
-the edge weight. -/
+/-- Three distinct Paley points cannot have all three ratios `δ₁ / δ₀` equal to `-1`. Otherwise
+`K(a) + K(b) = K(a) + K(c) = K(b) + K(c) = 0` by `weight_sum_eq_zero_of_antipodal_edge`. So
+`2 K(c) = 0`, and hence `K(c) = 0`, because `2 ≠ 0` in characteristic three. But `K(c) ≠ 0`. -/
 theorem false_of_three_antipodal (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -70,20 +68,20 @@ theorem false_of_three_antipodal (data : Witness p q G) (hp : p = 3)
   exact skewPair_edge_weight_ne_zero hcube hcc
     ((mul_eq_zero.mp h2).resolve_left h2ne)
 
-/-! ### Step 5: the commutator loop and the exchange relation (EX)
+/-! ### The exchange relation
 
-For two Paley pairs `(p, r)` and `(p', r')` with ratios `ρ = δ₁/δ₀`, `σ = δ₁'/δ₀'`, the
-commutator loop climbs `δ₀ → δ₁ → δ₁σ` by the edge itself and a `σ`-leg, and descends
-`δ₁σ → δ₀σ → δ₀` by a backwards `ρ`-leg and a backwards `σ`-leg.  The chaining and closure
-conditions hold identically (`ρσ = σρ`), each leg exists in exactly one orientation
-(`leg_resolved`), and conspiracy forces both weight components to vanish — the exchange
-relation (EX).  The Booleans `b₂ b₃ b₄` record the forced orientations; the loop for the
-opposite entry component `-δ₀` is this relation applied to the swapped pair `(r, p)`. -/
+Take the edges from `p` to `r` and from `p'` to `r'`, with ratios `ρ = δ₁ / δ₀` and
+`σ = δ₁' / δ₀'`. The four-leg loop
 
-/-- **The exchange relation (EX).**  Conspiracy on the commutator loop of two Paley pairs, in
-sign-resolved form: for any orientation sector `(b₂, b₃, b₄)` matching the square classes of
-`δ₁/δ₀'`, `δ₁'/δ₀'` and `δ₀/δ₀'`, both weight components of the loop vanish.  Step 5 of the
-case tree. -/
+`δ₀ → δ₁ → δ₁ σ ← δ₀ σ ← δ₀`
+
+uses the first edge, a `σ`-leg, a `ρ`-leg backwards and a `σ`-leg backwards. It closes because
+`ρ σ = σ ρ`, and its weights vanish (`weights_eq_zero_of_four_loop`). This is the exchange
+relation. The Booleans `b₂`, `b₃` and `b₄` say which case of `FrobFam.leg_resolved` each leg
+uses. -/
+
+/-- **The exchange relation.** Let `b₂`, `b₃` and `b₄` match the square classes of `δ₁ / δ₀'`,
+`δ₁' / δ₀'` and `δ₀ / δ₀'`. Then both weights of the four-leg loop above vanish. -/
 theorem exchange_relation (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -190,13 +188,12 @@ theorem exchange_relation (data : Witness p q G) (hp : p = 3)
 
 /-! ### The master formula
 
-`MasterFormula e λ₊ λ₋` is the collapsed form of the conspiracy:
-`K(p) = λ_{χ(δ₀)}·δ₀ᵉ - λ_{χ(δ₁)}·δ₁ᵉ` for every ordered pair of distinct Paley points.
-The anchor argument (`notes/bg/appC_problem1_resolution.md` §4.3) derives it from the
-exchange relation; the population branches feed different anchors. -/
+`MasterFormula e λ₊ λ₋` says that `K(p) = λ(δ₀) δ₀ᵉ - λ(δ₁) δ₁ᵉ` for every pair of Paley points
+`p ≠ r`, where `λ(x) = λ₊` if `x` is a square and `λ(x) = λ₋` otherwise. To prove it, we fix one
+edge as an anchor and apply the exchange relation to the anchor and every other edge. -/
 
 open scoped Classical in
-/-- The coefficient `λ_{χ(x)}`: `lamP` on squares, `lamM` on non-squares. -/
+/-- `sqSelect x lamP lamM` is `lamP` if `x` is a square and `lamM` otherwise. -/
 noncomputable def sqSelect (x lamP lamM : GaloisField p q) : GaloisField p q :=
   if IsSquare x then lamP else lamM
 
@@ -207,9 +204,8 @@ theorem sqSelect_of_not_isSquare {x lamP lamM : GaloisField p q} (h : ¬IsSquare
     sqSelect x lamP lamM = lamM := ite_eq_right h
 
 open scoped Classical in
-/-- Evaluating `sqSelect` with values branched on the sign of a reference `A₀`, at an element
-whose ratio to `A₀` is a square: the sign of `x` agrees with the sign of `A₀`, so the selector
-returns `vS`. -/
+/-- Let `A₀ ≠ 0` and `x ≠ 0`, with `x / A₀` a square. Then `x` and `A₀` are both squares or
+both non-squares, so the selector returns `vS`. -/
 private theorem sqSelect_ite_same {A₀ x vS vO : GaloisField p q} (hA₀ : A₀ ≠ 0)
     (hx0 : x ≠ 0) (hxs : IsSquare (x * A₀⁻¹)) :
     sqSelect x (if IsSquare A₀ then vS else vO) (if IsSquare A₀ then vO else vS) = vS := by
@@ -224,8 +220,8 @@ private theorem sqSelect_ite_same {A₀ x vS vO : GaloisField p q} (hA₀ : A₀
     rw [sqSelect_of_not_isSquare hxsq, ite_eq_right hA]
 
 open scoped Classical in
-/-- Evaluating `sqSelect` with values branched on the sign of a reference `A₀`, at an element
-whose ratio to `A₀` has square negative: the signs disagree, so the selector returns `vO`. -/
+/-- If instead `-(x / A₀)` is a square, then exactly one of `x` and `A₀` is a square, and the
+selector returns `vO`. -/
 private theorem sqSelect_ite_opp {A₀ x vS vO : GaloisField p q}
     (hneg1 : ¬IsSquare (-1 : GaloisField p q))
     (hdichA : IsSquare A₀ ∨ IsSquare (-A₀)) (hA₀ : A₀ ≠ 0) (hx0 : x ≠ 0)
@@ -243,9 +239,8 @@ private theorem sqSelect_ite_opp {A₀ x vS vO : GaloisField p q}
       exact hxs.mul hAneg
     rw [sqSelect_of_isSquare hxsq, ite_eq_right hA]
 
-/-- **The master formula**: `K(p) = λ_{χ(δ₀)}·δ₀ᵉ - λ_{χ(δ₁)}·δ₁ᵉ` for every ordered pair
-of distinct Paley points.  (The pair `(r, p)` recovers the `K(r)`-equation, so one component
-suffices.) -/
+/-- **The master formula**: `K(p) = λ(δ₀) δ₀ᵉ - λ(δ₁) δ₁ᵉ` for every pair of Paley points
+`p ≠ r`. (The formula for `K(r)` is the one for the pair `(r, p)`.) -/
 def MasterFormula (e : ℕ) (lamP lamM : GaloisField p q) : Prop :=
   ∀ p₀ p₁ r₀ r₁ : normOneUnits p q,
     normOneVal p₀ = normOneVal p₁ + 1 → normOneVal r₀ = normOneVal r₁ + 1 →
@@ -256,8 +251,7 @@ def MasterFormula (e : ℕ) (lamP lamM : GaloisField p q) : Prop :=
         - sqSelect (normOneVal r₁ ^ e - normOneVal p₁ ^ e) lamP lamM
           * (normOneVal r₁ ^ e - normOneVal p₁ ^ e) ^ e
 
-/-- Clearing the anchor denominator in an exchange relation with `b₃ = true`: the target
-weight is pinned against the anchor data. -/
+/-- Clearing denominators in the first weight of the exchange relation, when `b₃ = true`. -/
 private theorem pin_of_exchange {e : ℕ} {Kp W₂ W₄ D₀ D₁ d₀ d₁ : GaloisField p q}
     (hD₀ : D₀ ≠ 0)
     (h : Kp + W₂ * (d₁ * D₀⁻¹) ^ e - Kp * (D₁ * D₀⁻¹) ^ e - W₄ * (d₀ * D₀⁻¹) ^ e = 0) :
@@ -267,11 +261,12 @@ private theorem pin_of_exchange {e : ℕ} {Kp W₂ W₄ D₀ D₁ d₀ d₁ : Ga
     exact inv_mul_cancel₀ (pow_ne_zero _ hD₀)
   linear_combination D₀ ^ e * h + (Kp * D₁ ^ e + W₄ * d₀ ^ e - W₂ * d₁ ^ e) * hcancel
 
-/-- **The anchor argument, case `χ(ρ₀) = +1`.**  A single anchor pair whose ratio is a square
-pins every pair of the master formula: the exchange relation of any target pair against the
-anchor has `b₃ = true`, and its first component solves for the target weight with the
-anchor-side coefficients `λ = ±K·(Δ₀ᵉ - Δ₁ᵉ)⁻¹`.  No population hypotheses beyond the anchor
-are needed. -/
+/-- **The master formula, from an anchor with a square ratio.** Suppose that the anchor edge,
+from `a` to `b`, is not a collision and that its ratio is a square. Then the master formula
+holds. The exchange relation of any edge with the anchor has `b₃ = true`, and its first weight
+gives `K(p)`. The constants are `K(a) / (Δ₀ᵉ - Δ₁ᵉ)` and `-K(b) / (Δ₀ᵉ - Δ₁ᵉ)`, in an order
+that depends on the square class of `Δ₀`. Here `Δ₀` and `Δ₁` are the parameters of the
+anchor. -/
 theorem exists_masterFormula_of_plus_anchor (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -360,8 +355,7 @@ theorem exists_masterFormula_of_plus_anchor (data : Witness p q G) (hp : p = 3)
     field_simp
     linear_combination hpin
 
-/-- Dividing a pinned weight by the (non-zero) anchor determinant, distributing over the two
-master terms. -/
+/-- Dividing by the nonzero determinant `D`. -/
 private theorem master_div {K D A B d₀e d₁e : GaloisField p q} (hD : D ≠ 0)
     (h : K * D = A * d₀e - B * d₁e) : K = A * D⁻¹ * d₀e - B * D⁻¹ * d₁e := by
   have hK : K = (A * d₀e - B * d₁e) * D⁻¹ := by
@@ -369,9 +363,8 @@ private theorem master_div {K D A B d₀e d₁e : GaloisField p q} (hD : D ≠ 0
   rw [hK]
   ring
 
-/-- Clearing the anchor denominator in an exchange relation with `b₃ = false`: the two
-components couple the two target weights into a `2 × 2` system, solved against the determinant
-`D₀^{2e} - D₁^{2e}`. -/
+/-- Clearing denominators in the exchange relation when `b₃ = false`. The two weights form a
+`2 × 2` linear system for `K(p)` and `K(r)`, with determinant `D₀^{2e} - D₁^{2e}`. -/
 private theorem pin2_of_exchange {e : ℕ} {Kp Kr W₂ V₂ W₄ V₄ D₀ D₁ d₀ d₁ : GaloisField p q}
     (hD₀ : D₀ ≠ 0)
     (h1 : Kp + W₂ * (d₁ * D₀⁻¹) ^ e - -Kr * (D₁ * D₀⁻¹) ^ e - W₄ * (d₀ * D₀⁻¹) ^ e = 0)
@@ -385,12 +378,12 @@ private theorem pin2_of_exchange {e : ℕ} {Kp Kr W₂ V₂ W₄ V₄ D₀ D₁ 
     - (W₂ * d₁ ^ e * D₀ ^ e + Kr * D₁ ^ e * D₀ ^ e - W₄ * d₀ ^ e * D₀ ^ e
       - V₂ * d₁ ^ e * D₁ ^ e - Kp * (D₁ ^ e * D₁ ^ e) + V₄ * d₀ ^ e * D₁ ^ e) * hcancel
 
-/-- **The anchor argument, case `χ(ρ₀) = -1`.**  When the anchor ratio is a non-square with
-`ρ₀ ≠ ±1`, the exchange relation of any target pair against the anchor has `b₃ = false` and
-couples the two target weights; its two components form a `2 × 2` system with determinant
-`Δ₀^{2e} - Δ₁^{2e} ≠ 0`, which pins every pair to the master formula with coefficients
-`λ = (K(a)Δ₀ᵉ - K(b)Δ₁ᵉ)/(Δ₀^{2e} - Δ₁^{2e})` (component of `χ(Δ₀)`) and
-`λ' = (K(a)Δ₁ᵉ - K(b)Δ₀ᵉ)/(Δ₀^{2e} - Δ₁^{2e})` (opposite component). -/
+/-- **The master formula, from an anchor with a non-square ratio `ρ₀ ≠ -1`.** Suppose that the
+anchor edge is not a collision, that its ratio `ρ₀` is not a square, and that `ρ₀ ≠ -1`. Then the
+master formula holds. The exchange relation of any edge with the anchor has `b₃ = false`. Its two
+weights form a `2 × 2` system with determinant `Δ₀^{2e} - Δ₁^{2e} ≠ 0`. The solution is the
+master formula with the constants `(K(a) Δ₀ᵉ - K(b) Δ₁ᵉ) / (Δ₀^{2e} - Δ₁^{2e})` and
+`(K(a) Δ₁ᵉ - K(b) Δ₀ᵉ) / (Δ₀^{2e} - Δ₁^{2e})`. -/
 theorem exists_masterFormula_of_minus_anchor (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
@@ -507,10 +500,10 @@ theorem exists_masterFormula_of_minus_anchor (data : Witness p q G) (hp : p = 3)
       sqSelect_ite_opp hneg1 hdichA hDA0 hd1 hb₂]
     linear_combination master_div hD2 hpin
 
-/-- **Master or death: the population glue.**  Under conspiracy and no collision, the master
-formula holds: some pair has square ratio (case P), or some pair has ratio `≠ -1` — then
-non-square, so case M applies — or every ratio is `-1` and the three distinct Paley points
-die by step 4.  Steps 3–5 of the case tree, assembled. -/
+/-- **Without collisions, the master formula holds**, given three distinct Paley points. If
+some edge has a square ratio, we use it as the anchor. Otherwise, if some edge has a ratio other
+than `-1`, then that ratio is not a square, and we use this edge. Otherwise every ratio is `-1`,
+which is impossible by `false_of_three_antipodal`. -/
 theorem exists_masterFormula_of_no_collision (data : Witness p q G) (hp : p = 3)
     (hqprime : q.Prime) (hq3 : q ≠ 3) (hqodd : Odd q) {e : ℕ} (he : Odd e)
     (hcube : ∀ z : GaloisField p q, z ^ (e * e * e) = z)
