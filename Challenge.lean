@@ -9,15 +9,22 @@ import Mathlib.LinearAlgebra.Matrix.SpecialLinearGroup
 import Mathlib.RingTheory.Norm.Defs
 
 /-!
-# The objects in the statement
+# Péterfalvi's problem: the statements
 
-This file defines the objects that appear in the main theorems. `Challenge.lean` repeats these
-definitions word for word, and Comparator checks that the two copies are the same.
+This file states the two main theorems. It imports only Mathlib. Its definitions repeat those
+of `PeterfalviProblem.Statement` word for word, and the two proofs are left as `sorry`.
+`Solution.lean` imports the complete proofs, and Comparator checks that the two files state the
+same theorems about the same definitions.
 
-We follow Proposition 9 of Glauberman–Norton (1993). The same hypotheses appear in Theorem C in
-Appendix C of Bender–Glauberman (1994). Let `p` and `q` be primes and let `F = 𝔽_{p^q}`
-(`GaloisField p q`). The definitions need only that `p` is prime. The main theorems assume that
-`q` is prime.
+Glauberman and Norton end their 1993 paper with a problem of Péterfalvi:
+
+> **Problem** (Péterfalvi). Can the hypothesis of Proposition 9 be satisfied for `p = 3`?
+
+The same question is Problem 1 in Appendix C of Bender–Glauberman (1994).
+`not_hypothesisB_three` answers it: no. `hypothesisB_two` shows that the hypothesis can hold for
+`p = 2` (Example 10 of Glauberman–Norton), so the definition is not empty.
+
+Let `p` and `q` be primes and let `F = 𝔽_{p^q}` (`GaloisField p q`).
 
 * `P` is the additive group of `F`. We write it multiplicatively, as `Multiplicative F`, so that
   it can be the first factor of a semidirect product.
@@ -27,18 +34,15 @@ Appendix C of Bender–Glauberman (1994). Let `p` and `q` be primes and let `F =
 
 **Hypothesis (B)** for a group `G`: there are an injective homomorphism `σ : H → G`, a finite
 abelian subgroup `Q` of `G` whose order is prime to `p`, and an element `y ∈ Q`, such that
-`σ(P₀)` normalizes `Q` and `σ(P₀)^y = y⁻¹ σ(P₀) y` normalizes `σ(U)`.
+`σ(P₀)` normalizes `Q` and `σ(P₀)^y = y⁻¹ σ(P₀) y` normalizes `σ(U)`. Proposition 9 also assumes
+condition (A): `q ∤ p - 1`.
 
-In the last condition Glauberman–Norton write "normalizes `U`". There `U` stands for its image
-`σ(U)` in `G`: Remark (VI) in Appendix C of Bender–Glauberman identifies `H` with its image.
+## References
 
-## Main definitions
-
-* `PeterfalviProblem.normOneUnits`: the group `U`.
-* `PeterfalviProblem.normOneFrobeniusGroup`: the group `H = P ⋊ U`.
-* `PeterfalviProblem.normOneFrobeniusComplement`: the subgroup `U` of `H`.
-* `PeterfalviProblem.primeLine`: the subgroup `P₀` of `H`.
-* `PeterfalviProblem.HypothesisB`: hypothesis (B).
+* G. Glauberman and S. P. Norton, *On a combinatorial problem associated with the odd order
+  theorem*, Proc. Amer. Math. Soc. **119** (1993), 1089–1094.
+* H. Bender and G. Glauberman, *Local Analysis for the Odd Order Theorem*, London Math. Soc.
+  Lecture Note Series 188, Cambridge University Press, 1994.
 -/
 
 namespace PeterfalviProblem
@@ -86,5 +90,20 @@ def HypothesisB (G : Type*) [Group G] : Prop :=
         (primeLine p q).map σ ≤ Subgroup.normalizer (Q : Set G) ∧
         (primeLine p q).map ((MulAut.conj y⁻¹).toMonoidHom.comp σ) ≤
           Subgroup.normalizer ((normOneFrobeniusComplement p q).map σ : Set G)
+
+/-! ## The main theorems -/
+
+/-- **The answer to Péterfalvi's problem.** Let `q` be a prime with `q ∤ 3 - 1`. This is
+condition (A) of Proposition 9 of Glauberman–Norton for `p = 3`. Then no group `G` satisfies
+hypothesis (B) for `p = 3` and `q`. -/
+theorem not_hypothesisB_three (q : ℕ) (hq : q.Prime) (hA : ¬ q ∣ 3 - 1) (G : Type*) [Group G] :
+    ¬ HypothesisB 3 q G := by
+  sorry
+
+/-- **Hypothesis (B) can hold for `p = 2`.** For every `q ≠ 0`, the group `SL(2, 2^q)` satisfies
+hypothesis (B) for `p = 2` and `q`. This is Example 10 of Glauberman–Norton. -/
+theorem hypothesisB_two (q : ℕ) (hq : q ≠ 0) :
+    HypothesisB 2 q (Matrix.SpecialLinearGroup (Fin 2) (GaloisField 2 q)) := by
+  sorry
 
 end PeterfalviProblem

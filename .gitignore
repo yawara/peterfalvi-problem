@@ -2,3 +2,6 @@
 /.lake/
 /docbuild/.lake/
 
+/.audit/
+__pycache__/
+*.pyc
