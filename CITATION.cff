@@ -1,0 +1,55 @@
+cff-version: 1.2.0
+message: >-
+  If you use this project, please cite it as below and include the commit hash you used.
+type: software
+title: "Péterfalvi's Problem for p = 3: No Group Satisfies Hypothesis (B)"
+authors:
+  - family-names: Ishida
+    given-names: Yawara
+    email: yawara@aisr.dev
+    affiliation: "A.I.System Research, Inc."
+repository-code: "https://github.com/yawara/peterfalvi-problem"
+url: "https://github.com/yawara/peterfalvi-problem"
+license: Apache-2.0
+abstract: >-
+  A Lean 4 proof that, for p = 3 and every prime q with q ∤ p − 1, no group
+  satisfies hypothesis (B) of Proposition 9 of Glauberman and Norton (Proc.
+  Amer. Math. Soc. 119, 1993). This answers Péterfalvi's question at the end of
+  that paper, which is also Problem 1 in Appendix C of Bender and Glauberman,
+  Local Analysis for the Odd Order Theorem (1994). The repository also proves
+  Péterfalvi's example: SL(2, 2^q) satisfies the hypothesis for p = 2.
+keywords:
+  - Lean 4
+  - mathlib
+  - formalization
+  - odd order theorem
+  - finite group theory
+  - finite fields
+references:
+  - type: article
+    title: On a combinatorial problem associated with the odd order theorem
+    authors:
+      - family-names: Glauberman
+        given-names: George
+      - family-names: Norton
+        given-names: Simon P.
+    journal: Proceedings of the American Mathematical Society
+    volume: 119
+    issue: 4
+    start: 1089
+    end: 1094
+    year: 1993
+    doi: 10.1090/S0002-9939-1993-1160299-X
+  - type: book
+    title: Local Analysis for the Odd Order Theorem
+    authors:
+      - family-names: Bender
+        given-names: Helmut
+      - family-names: Glauberman
+        given-names: George
+    collection-title: London Mathematical Society Lecture Note Series
+    volume: 188
+    publisher:
+      name: Cambridge University Press
+    year: 1994
+    isbn: 0-521-45716-5

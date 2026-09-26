@@ -1,0 +1,239 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/mathlib-initiative/formalization.yaml/main/schema/formalization.schema.json
+version: v0.4
+
+project:
+  name: "Péterfalvi's Problem for p = 3: No Group Satisfies Hypothesis (B)"
+  description: >-
+    Glauberman and Norton (Proc. Amer. Math. Soc. 119, 1993) end their paper on a
+    combinatorial problem that arises in the proof of the Feit–Thompson odd order
+    theorem with a question of Péterfalvi: can the hypothesis of their
+    Proposition 9 be satisfied for p = 3? The same question is Problem 1 in
+    Appendix C of Bender and Glauberman, Local Analysis for the Odd Order Theorem
+    (1994). Let F be the field with p^q elements, P its additive group, U its
+    group of units of norm one over the prime field, H the semidirect product
+    P ⋊ U, and P₀ the image of the additive group of the prime field in H.
+    Hypothesis (B) asks for an injective homomorphism σ from H into a group G, a
+    finite abelian subgroup Q of G whose order is prime to p, and an element y of
+    Q, such that σ(P₀) normalizes Q and σ(P₀)^y normalizes σ(U). Proposition 9
+    also assumes condition (A): q does not divide p − 1. This project proves in
+    Lean 4 that the answer is negative: for every prime q with q ∤ 3 − 1, no
+    group G, finite or infinite, satisfies hypothesis (B) with p = 3. It also
+    proves Péterfalvi's example from the same paper, which shows that
+    SL(2, 2^q) satisfies hypothesis (B) with p = 2, so the hypothesis is not
+    empty. The proof is new. It turns a witness of hypothesis (B) into relations
+    between three copies of the additive group of the field with 3^q elements,
+    and it rules out these relations by arithmetic in that field.
+  authors:
+    - Yawara Ishida
+  license: Apache-2.0
+  responsible_maintainers:
+    - Yawara Ishida
+
+classification:
+  arxiv: [math.GR, math.NT]
+  msc2020: [20D05, 20D10, 11T06]
+
+sources:
+  - title: >-
+      No group satisfies hypothesis (B) of Proposition 9 of Glauberman–Norton for
+      p = 3
+    type: original-proof
+    relationship: other
+    note: >-
+      The negative answer and its proof are original. They were found in
+      August 2026 in the author's Lean formalization of Bender–Glauberman
+      (github.com/yawara/odd-order), where they were first written down, in
+      Lean and in notes in Japanese. They have not been published elsewhere.
+      This repository is a self-contained version of that formalization; see
+      related_formalizations. Novelty rests on the literature search described
+      in review.notes; no wider claim is made.
+  - title: On a combinatorial problem associated with the odd order theorem
+    authors:
+      - George Glauberman
+      - Simon P. Norton
+    contributors:
+      - name: Thomas Peterfalvi
+        role: problem-proposer
+    id: https://doi.org/10.1090/S0002-9939-1993-1160299-X
+    type: paper
+    location: >-
+      Proposition 9, Example 10 and the closing Problem (Péterfalvi),
+      pp. 1093–1094
+    relationship: background
+    note: >-
+      Proc. Amer. Math. Soc. 119 (1993), no. 4, 1089–1094. The paper poses the
+      problem, which it attributes to Péterfalvi, and gives the hypothesis that
+      the Lean statement follows. Its Example 10, also due to Péterfalvi, is
+      the theorem hypothesisB_two. The paper's Propositions 7 and 9 together
+      show that the hypothesis fails for p ≥ 5; those results are not part of
+      this repository.
+  - title: Local Analysis for the Odd Order Theorem
+    authors:
+      - Helmut Bender
+      - George Glauberman
+    id: ISBN 0-521-45716-5
+    type: book
+    location: >-
+      Appendix C: Theorem C (p. 145), Remarks (I), (II), (IV) and (VI), and
+      Problem 1 (p. 152)
+    relationship: background
+    note: >-
+      London Mathematical Society Lecture Note Series 188, Cambridge University
+      Press, 1994. Theorem C has the same hypotheses (A) and (B). Remark (IV)
+      records that it was not known whether p = 3 can occur, and Problem 1
+      repeats Péterfalvi's question.
+  - title: >-
+      Simplification du chapitre VI de l'article de Feit et Thompson sur les
+      groupes d'ordre impair
+    authors:
+      - Thomas Peterfalvi
+    id: C. R. Acad. Sci. Paris Sér. I Math. 299 (1984), no. 12, 531–534
+    type: paper
+    relationship: background
+    note: >-
+      The simplification of the last chapter of the Feit–Thompson proof in which
+      the configuration of hypothesis (B) arises; Glauberman–Norton's
+      Proposition 9 restates its main lemma.
+
+related_formalizations:
+  - id: https://github.com/yawara/odd-order
+    relationship: adapts
+    note: >-
+      The author's Lean formalization of the Feit–Thompson theorem and of the
+      books of Isaacs, Bender–Glauberman and Peterfalvi, where this proof was
+      first found and formalized (as hypothesisB_false). This repository
+      extracts that proof from commit 82e8b66fe59ea58d67c59b4ebe8b4fb73ff2c1e0,
+      restates the problem in a short statement module, removes parts that the
+      proof does not need, and simplifies a few steps. The mathematics is the
+      same.
+  - id: https://github.com/math-comp/odd-order
+    relationship: other
+    note: >-
+      The Coq formalization of the Feit–Thompson theorem by Gonthier et al.
+      Its file theories/BGappendixC.v proves Theorem C of Appendix C of
+      Bender–Glauberman (p ≤ q) for finite groups under the same hypotheses (A)
+      and (B). It does not treat Problem 1. It was not used for this proof.
+
+automation:
+  methods:
+    - method: agent
+      framework: Claude Code
+      models: [Claude Opus 5, Claude Fable 5]
+      tool_setup: >-
+        August 2026, in the odd-order project, under Yawara Ishida's direction.
+        The agents found the proof, wrote the informal proof, and wrote and
+        checked the first Lean proof. Separate agent sessions reviewed the
+        informal proof adversarially. GAP and C programs checked the key
+        identities numerically in small fields.
+    - method: other
+      framework: ChatGPT
+      models: [GPT-5.6]
+      tool_setup: >-
+        Four consultations, 2026-08-09 to 2026-08-12, on the mathematics of
+        the problem. The agents checked every answer step by step before using
+        it. One idea from these answers is in the final proof: the use of Hua's
+        identity for additive subgroups of a field that are closed under
+        inversion (Algebra/InverseClosedSubgroup.lean and
+        inv_mem_commSubgroup).
+    - method: agent
+      framework: Claude Code
+      models: [Claude Opus 5.5]
+      tool_setup: >-
+        September 2026, under Yawara Ishida's direction: extraction of the
+        proof into this repository, the statement module, the Challenge and
+        Solution files, simplifications, documentation, and the checks.
+  notes: >-
+    Yawara Ishida directed the work and is responsible for it. The AI systems
+    above made substantive contributions to the mathematics, to the Lean proofs,
+    and to the documentation. Costs and hardware are not recorded.
+
+status:
+  scope: >-
+    Two theorems are selected for Comparator: not_hypothesisB_three (the
+    negative answer for p = 3) and hypothesisB_two (Péterfalvi's example for
+    p = 2). The repository contains the complete proofs of both, with no sorry
+    and no project axioms. It does not formalize the other results of
+    Glauberman–Norton or of Appendix C of Bender–Glauberman, such as
+    Proposition 7 (p ≥ 5), Theorem C, or Example 11 (the Suzuki groups).
+  sorry_count: 0
+  sorry_in_definitions: 0
+  axioms: [propext, Classical.choice, Quot.sound]
+  main_results:
+    - declaration: PeterfalviProblem.not_hypothesisB_three
+      file: PeterfalviProblem/Main.lean
+      sorry_count: 0
+      axioms: [propext, Classical.choice, Quot.sound]
+      comparator_config: comparator.json
+    - declaration: PeterfalviProblem.hypothesisB_two
+      file: PeterfalviProblem/Main.lean
+      sorry_count: 0
+      axioms: [propext, Classical.choice, Quot.sound]
+      comparator_config: comparator.json
+
+fidelity:
+  divergences: >-
+    The statement follows Proposition 9 of Glauberman–Norton. (1) The group U
+    is defined as the kernel of the norm map from the units of GF(p^q) to the
+    units of GF(p). Glauberman–Norton define U as the set of (p − 1)-th powers
+    and note that these are the elements of norm one; Bender–Glauberman define
+    U as the elements of norm one. (2) In the last condition of hypothesis (B),
+    "σ(P₀)^y normalizes U" is read as normalizing σ(U), the image of U in G;
+    Remark (VI) in Appendix C of Bender–Glauberman identifies H with its image.
+    (3) σ(P₀)^y is y⁻¹ σ(P₀) y. (4) "Finite abelian p′-subgroup" is stated as a
+    finite abelian subgroup Q with p ∤ |Q|. (5) Condition (A) is used in the
+    form q ∤ p − 1 of Proposition 9; the lemma coprime_iff_not_dvd proves that
+    it is equivalent to the form gcd((p^q − 1)/(p − 1), p − 1) = 1 used by
+    Bender–Glauberman. (6) The group G is arbitrary, not assumed finite; this
+    makes the negative answer stronger. (7) The example for p = 2 is proved for
+    every q ≥ 1, not only for primes q. (8) Following Mathlib, the additive
+    group P is written multiplicatively as Multiplicative (GaloisField p q), H
+    is Mathlib's semidirect product, and P₀ is the image of algebraMap from
+    ZMod p. The definitions assume only that p is prime; the main theorems add
+    the hypotheses on q.
+
+review:
+  status: agent-reviewed
+  reviewers:
+    - Claude agents (Anthropic)
+  notes: >-
+    Nine separate agent reviews, each trying to refute one part of the informal
+    proof, confirmed its final version. Errors found in drafts, by these reviews
+    and by the Lean formalization, were corrected. Numerical checks in
+    GF(3^5), GF(3^7) and GF(3^13) agreed with the key identities. The Lean
+    proofs are checked by Lean's kernel; the axiom audit Tests/Axioms.lean
+    confirms that every declaration uses only propext, Classical.choice and
+    Quot.sound. The statement was compared by an agent with the page images of
+    Glauberman–Norton, pp. 1093–1094. No independent human review of the
+    mathematics or of the Lean statements is claimed. Literature search: on
+    2026-08-09, OpenAlex and Semantic Scholar listed no works citing
+    Glauberman–Norton (1993); these databases miss the citation in
+    Bender–Glauberman (1994). An AI-assisted search found no published answer
+    to the problem, and Peterfalvi's later book, Character Theory for the Odd
+    Order Theorem (2000), does not return to it. MathSciNet and zbMATH were not
+    searched for citations. We know of no earlier answer, but novelty beyond
+    this search is not established.
+
+alignment:
+  namespace: PeterfalviProblem
+  statements:
+    - source: >-
+        Glauberman–Norton (1993), Problem (Péterfalvi), p. 1094; Bender–Glauberman
+        (1994), Appendix C, Problem 1, p. 152
+      lean: PeterfalviProblem.not_hypothesisB_three
+      module: PeterfalviProblem.Main
+      status: proved
+      note: >-
+        For every prime q with q ∤ 3 − 1 and every group G, hypothesis (B) fails
+        for p = 3. This is the negative answer to the problem.
+    - source: >-
+        Glauberman–Norton (1993), Example 10; Bender–Glauberman (1994),
+        Appendix C, Remark (II)
+      lean: PeterfalviProblem.hypothesisB_two
+      module: PeterfalviProblem.Main
+      status: proved
+      note: >-
+        For every q ≠ 0, SL(2, 2^q) satisfies hypothesis (B) for p = 2, with the
+        data of Example 10.
+
+acknowledgements: >-
+  This development uses Lean 4 and Mathlib.
