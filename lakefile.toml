@@ -2,11 +2,15 @@ name = "PeterfalviProblem"
 version = "0.1.0"
 keywords = ["math"]
 defaultTargets = ["PeterfalviProblem", "Solution"]
+lintDriver = "batteries/runLinter"
+fixedToolchain = true
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
 autoImplicit = false
 weak.linter.mathlibStandardSet = true
+weak.linter.style.header = true
+weak.linter.style.longFile = 1500
 
 [[require]]
 name = "mathlib"
